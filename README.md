@@ -1,54 +1,68 @@
-# WAHH AIR! — GitHub Pages + Firebase Firestore
+# WAHH AIR! Management System
 
-Aplikasi stok, bancuhan, rider dan keuntungan yang boleh sync antara telefon dan komputer.
+Vanilla **HTML/CSS/JavaScript** frontend, **Supabase** for Authentication/Postgres/Storage, **Vercel** hosting/serverless admin action, and GitHub deployment.
 
-## 1. Cipta Firebase project
+## Included
 
-1. Buka Firebase Console dan cipta project.
-2. Tambah **Web App**.
-3. Salin `firebaseConfig` yang diberi.
-4. Buka `firebase-config.js` dan gantikan semua nilai `PASTE_...`.
+- Public landing page with WAHH AIR branding/logo, posters, flavour stock and public Rider/Ejen IDs.
+- Login roles: Rider / Ejen / Admin. Public registration is Rider/Ejen only.
+- Per-user private data enforced with Supabase RLS + security-definer RPCs.
+- Rider/Ejen stock, sales, commission and private profile.
+- Auto sales settlement invoice generated on every finalized sale; invoice center is Admin-only.
+- Admin stock allocation, HQ stock correction, flavours/prices, materials/recipes, weighted-average material purchase cost, expenses and sales-on-behalf.
+- Management accounting: Revenue, COGS, Gross Profit, Commission Expense, Operating Expenses, Net Profit, stock purchases and inventory value.
+- Partner profit sharing with configurable percentages, reserve and distribution snapshots.
+- Poster upload using Supabase Storage.
+- Account suspension and secure account deletion through a Vercel serverless endpoint. Passwords and Auth UUIDs are never shown in the Admin UI.
+- Audit log for key operations.
 
-## 2. Aktifkan Authentication
+## 1) Supabase
 
-1. Firebase Console > Authentication > Get started.
-2. Sign-in method > **Email/Password** > Enable.
+Create a **new Supabase project**, open SQL Editor and run:
 
-## 3. Aktifkan Firestore
+`supabase/schema.sql`
 
-1. Firebase Console > Firestore Database > Create database.
-2. Pilih lokasi terdekat yang tersedia.
-3. Buka tab Rules.
-4. Salin kandungan `firestore.rules`, kemudian Publish.
+Then register your own account from the web as Rider or Ejen and promote it to Admin with the SQL shown at the bottom of `schema.sql`.
 
-Rules ini memastikan setiap akaun hanya boleh baca/tulis datanya sendiri.
+Recommended Auth settings:
 
-## 4. Upload ke GitHub
+- Email/password enabled.
+- For testing, you can disable Confirm Email. For production, keep email confirmation enabled and set the Site URL / Redirect URLs to your Vercel domain.
 
-Upload fail berikut ke root repository:
+## 2) Vercel Environment Variables
 
-- `index.html`
-- `firebase-config.js`
-- `firestore.rules`
-- `README.md`
+Add these in Vercel Project → Settings → Environment Variables:
 
-Jangan buang `firebase-config.js`. Firebase web config bukan password; keselamatan sebenar datang daripada Authentication dan Firestore Rules.
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
 
-## 5. Hidupkan GitHub Pages
+`SUPABASE_SERVICE_ROLE_KEY` is server-only and is used only by `/api/admin-delete-user.js`. Never put it in HTML or client-side JS.
 
-1. Repository > Settings > Pages.
-2. Source: **Deploy from a branch**.
-3. Branch: `main`, folder `/ (root)`.
-4. Save.
-5. Buka URL GitHub Pages yang diberikan.
+## 3) Deploy with GitHub + Vercel
 
-## Data lama
+Import this GitHub repository into Vercel. Framework Preset can be **Other**. No build command is required. Vercel will serve `index.html` and the `/api` serverless functions.
 
-Pada kali pertama akaun log masuk, jika Firestore masih kosong, data localStorage pada peranti itu akan dihantar ke Firestore secara automatik. Selepas itu, gunakan akaun sama pada semua peranti.
+Every later push to the selected production branch will auto-deploy.
 
-## Ujian penting
+## Accounting model
 
-- Daftar akaun pada peranti pertama.
-- Pastikan status menunjukkan `Semua data telah sync`.
-- Log masuk akaun sama pada peranti kedua.
-- Tambah stok pada satu peranti dan lihat perubahan muncul pada peranti lain.
+This project uses management accounting rather than treating every stock purchase as an immediate P&L expense:
+
+`Net Profit = Revenue - COGS - Commission - Operating Expenses`
+
+Raw-material purchases increase inventory value. Weighted-average material cost is updated on purchase. A flavour's COGS is calculated from its recipe; if a recipe has no usable cost yet, `manual_unit_cogs` is used as a fallback.
+
+Partner distribution uses **Net Profit**, optionally subtracts a Business Reserve, then splits the distributable amount according to active partner percentages.
+
+## Invoice behavior
+
+Invoices are immutable sales snapshots generated automatically in the database when a sale is finalized. Rider/Ejen do not have invoice access. Admin can open an invoice and use **Print / Save PDF**.
+
+## Security notes
+
+- RLS is enabled on all business tables.
+- Users cannot directly update their own role/status.
+- Admin operations involving another user's account accept Public IDs such as `WR-000001`, not the underlying Auth UUID.
+- Admin account deletion is verified server-side using the logged-in access token plus the service role key.
+- Supabase Auth passwords are never readable by this app.
