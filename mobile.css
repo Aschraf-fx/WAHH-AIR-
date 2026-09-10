@@ -1,0 +1,111 @@
+/* WAHH AIR mobile responsive layer — desktop styles remain untouched */
+@media (max-width: 760px) {
+  html, body { width:100%; max-width:100%; overflow-x:hidden; }
+  body { -webkit-text-size-adjust:100%; }
+  .shell { width:calc(100% - 24px); }
+
+  .topbar { min-height:62px; gap:8px; }
+  .brand { min-width:0; gap:7px; }
+  .brand img { width:42px; height:42px; flex:0 0 42px; }
+  .brand strong { font-size:.88rem; white-space:nowrap; }
+  .nav-actions { gap:6px; min-width:0; }
+  .nav-actions .btn { min-height:42px; padding:9px 11px; font-size:.78rem; }
+  .identity-pill { max-width:145px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:8px 9px; font-size:.72rem; }
+
+  .hero { gap:26px; padding-block:34px 42px; }
+  .hero-copy h1 { font-size:clamp(2.35rem,12vw,3.2rem); line-height:.98; letter-spacing:-.045em; }
+  .hero-copy h1 span { font-size:.42em; line-height:1.25; }
+  .hero-copy p { font-size:.98rem; line-height:1.65; }
+  .hero-actions { display:grid; grid-template-columns:1fr; width:100%; }
+  .hero-actions .btn { width:100%; min-height:48px; }
+  .hero-logo-card { width:min(82vw,330px); padding:18px; border-radius:28px; transform:none; }
+
+  .section-block { padding-block:36px; }
+  .section-heading { gap:10px; margin-bottom:18px; }
+  .section-heading h2 { font-size:1.75rem; }
+  .section-heading p { font-size:.92rem; }
+  .poster-grid { grid-template-columns:1fr; }
+  .stock-grid, .member-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .stock-card { padding:14px; min-width:0; }
+  .stock-card h3 { margin-bottom:12px; font-size:.92rem; overflow-wrap:anywhere; }
+  .stock-value { font-size:1.55rem; }
+  .member-card { padding:12px; min-width:0; align-items:flex-start; flex-direction:column; }
+
+  .modal { padding:10px; align-items:start; padding-top:max(10px,env(safe-area-inset-top)); }
+  .modal-card { width:100%; max-width:100%; border-radius:18px; padding:20px 16px; margin:auto; max-height:calc(100dvh - 20px); overflow:auto; }
+  .auth-logo { width:90px; }
+  .form-stack input, .form-stack select, .form-stack textarea, .field-input,
+  .inline-form input, .inline-form select { min-height:46px; font-size:16px; }
+  .btn { min-height:44px; }
+  .modal-close { width:40px; height:40px; }
+  .toast { left:12px; right:12px; bottom:12px; min-width:0; max-width:none; }
+
+  .portal-layout { width:100%; max-width:100%; }
+  .portal-main { width:100%; max-width:100%; overflow:hidden; }
+  .portal-content { width:100%; max-width:100%; padding:14px 10px 28px; overflow:hidden; }
+  .mobile-portal-header { top:62px; min-height:52px; padding:7px 10px; }
+  .icon-btn { width:42px; height:42px; flex:0 0 42px; }
+  .sidebar { width:min(82vw,290px); left:min(-82vw,-290px); padding-top:max(18px,env(safe-area-inset-top)); }
+  .sidebar.open { left:0; }
+  .side-menu button { min-height:46px; }
+
+  .page-head { gap:12px; margin-bottom:16px; }
+  .page-head h1 { font-size:clamp(1.55rem,7vw,1.9rem); overflow-wrap:anywhere; }
+  .page-head p { font-size:.88rem; line-height:1.5; }
+  .page-head > :last-child:not(:first-child) { width:100%; }
+  .page-head > .btn, .page-head > div + .btn { width:100%; }
+
+  .kpi-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+  .kpi { min-width:0; padding:13px 11px; border-radius:14px; }
+  .kpi .label { font-size:.7rem; line-height:1.25; }
+  .kpi .value { font-size:clamp(1.15rem,6vw,1.55rem); overflow-wrap:anywhere; }
+  .kpi .note { font-size:.68rem; }
+  .grid-2, .grid-3 { grid-template-columns:1fr; gap:10px; }
+  .panel { width:100%; max-width:100%; min-width:0; padding:13px 11px; border-radius:15px; margin-top:12px; overflow:hidden; }
+  .panel-head { align-items:flex-start; flex-direction:column; gap:8px; }
+  .panel-head > .btn, .panel-head > div + .btn { width:100%; }
+  .quick-card, .partner-card { min-width:0; }
+
+  .inline-form { grid-template-columns:1fr; gap:9px; }
+  .inline-form .btn { width:100%; }
+  .sale-line { grid-template-columns:1fr; gap:8px; }
+  .sale-line .line-name { grid-column:auto; }
+  .sale-line .btn { width:100%; }
+  .totals-box { width:100%; }
+  .total-row { gap:10px; }
+
+  .tabs { flex-wrap:nowrap; overflow-x:auto; overscroll-behavior-inline:contain; padding-bottom:4px; scrollbar-width:none; }
+  .tabs::-webkit-scrollbar { display:none; }
+  .tab-btn { flex:0 0 auto; min-height:38px; }
+
+  /* Tables scroll only inside their own card; the page itself never moves sideways. */
+  .table-wrap { width:100%; max-width:100%; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior-inline:contain; }
+  .data-table { min-width:640px; }
+  .data-table th, .data-table td { padding:10px 9px; font-size:.78rem; white-space:nowrap; }
+  .data-table th { font-size:.66rem; }
+  .table-wrap::after { content:"← Swipe jadual →"; display:block; position:sticky; left:0; width:max-content; padding:6px 9px; color:var(--muted); font-size:.66rem; background:#f8fafc; border-top:1px solid var(--line); }
+
+  .accounting-hero { padding:15px 11px; border-radius:16px; }
+  .accounting-hero .kpi-grid { margin-top:12px; }
+
+  .invoice-modal-card { padding:8px; }
+  .invoice-toolbar { position:sticky; top:0; z-index:2; background:#eef2f7; padding:4px 0 8px; }
+  .invoice-paper { min-height:0; padding:16px 12px; width:100%; overflow:hidden; }
+  .invoice-head { gap:10px; }
+  .invoice-head img { width:82px; }
+  .invoice-title h1 { font-size:1.35rem; }
+  .invoice-meta { margin:16px 0; gap:8px; }
+  .invoice-total { width:100%; }
+  .row-actions { flex-wrap:wrap; }
+  .row-actions .btn { flex:1 1 120px; }
+
+  .file-drop { padding:13px 9px; }
+}
+
+@media (max-width: 390px) {
+  .stock-grid, .member-grid { grid-template-columns:1fr; }
+  .kpi-grid { grid-template-columns:1fr 1fr; }
+  .kpi { padding:11px 9px; }
+  .topbar .brand div { display:none; }
+  .identity-pill { max-width:118px; }
+}
