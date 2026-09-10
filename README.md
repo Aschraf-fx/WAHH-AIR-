@@ -28,13 +28,15 @@ After deployment, register your own account once as Rider/Ejen. Then run `supaba
 
 ## 2. Vercel environment variables
 
-Add these under Vercel Project → Settings → Environment Variables:
+Supabase now recommends the newer publishable/secret API key system. Add these under Vercel Project → Settings → Environment Variables:
 
 - `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SECRET_KEY`
 
-The service-role key is server-only. Never expose it in HTML or browser JavaScript.
+The app also accepts the legacy `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` names as fallbacks.
+
+`SUPABASE_SECRET_KEY` / legacy service-role key is server-only. Never expose it in HTML or browser JavaScript.
 
 ## 3. GitHub + Vercel
 
@@ -58,5 +60,5 @@ Invoices are immutable sale snapshots created automatically at finalization. Rid
 - Users cannot directly change their role or account status.
 - Rider/Ejen self-service operations are scoped by `auth.uid()`.
 - Admin operations accept Public IDs such as `WR-000001`; the Admin UI does not expose Auth UUIDs.
-- Account deletion is server-side and verifies the logged-in Admin before using the Supabase service role.
+- Account deletion is server-side and verifies the logged-in Admin before using the Supabase secret/service-role key.
 - Supabase Auth passwords are never readable by the app.
