@@ -38,7 +38,12 @@ function renderRecruitmentPosters(rows) {
   grid.innerHTML = rows.map(p => {
     const { data } = state.supabase.storage.from('posters').getPublicUrl(p.storage_path);
     const card = `<article class="poster-card"><img src="${esc(data.publicUrl)}" alt="${esc(p.title)}"><div class="poster-meta"><strong>${esc(p.title)}</strong><span>Jom Jadi Rider / Ejen WAHH AIR</span></div></article>`;
-    return /ejen|agent/i.test(p.title || '') ? `<a href="/program-ejen.html" aria-label="Baca Program Ejen WAHH AIR">${card}</a>` : card;
+    const title = p.title || '';
+    const isRider = /rider/i.test(title);
+    const isAgent = /ejen|agent/i.test(title);
+    if (isRider && !isAgent) return `<a href="/program-rider.html" aria-label="Baca Program Rider WAHH AIR">${card}</a>`;
+    if (isAgent && !isRider) return `<a href="/program-ejen.html" aria-label="Baca Program Ejen WAHH AIR">${card}</a>`;
+    return card;
   }).join('');
 }
 
