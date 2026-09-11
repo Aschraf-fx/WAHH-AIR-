@@ -15,7 +15,23 @@ document.addEventListener('DOMContentLoaded', async () => {
           })
       )
     );
-    const fullResolutionLogo = `data:image/webp;base64,${parts.join('')}`;
+
+    const decodedParts = parts.map(part => {
+      const binary = atob(part.trim());
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+    });
+
+    const totalLength = decodedParts.reduce((sum, part) => sum + part.length, 0);
+    const merged = new Uint8Array(totalLength);
+    let offset = 0;
+    decodedParts.forEach(part => {
+      merged.set(part, offset);
+      offset += part.length;
+    });
+
+    const fullResolutionLogo = URL.createObjectURL(new Blob([merged], { type: 'image/webp' }));
     targets.forEach(img => { img.src = fullResolutionLogo; });
   } catch (error) {
     console.warn('Landing logo asset unavailable:', error);
