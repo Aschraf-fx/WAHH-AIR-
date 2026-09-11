@@ -37,7 +37,8 @@ function renderRecruitmentPosters(rows) {
   }
   grid.innerHTML = rows.map(p => {
     const { data } = state.supabase.storage.from('posters').getPublicUrl(p.storage_path);
-    return `<article class="poster-card"><img src="${esc(data.publicUrl)}" alt="${esc(p.title)}"><div class="poster-meta"><strong>${esc(p.title)}</strong><span>Jom Jadi Rider / Ejen WAHH AIR</span></div></article>`;
+    const card = `<article class="poster-card"><img src="${esc(data.publicUrl)}" alt="${esc(p.title)}"><div class="poster-meta"><strong>${esc(p.title)}</strong><span>Jom Jadi Rider / Ejen WAHH AIR</span></div></article>`;
+    return /ejen|agent/i.test(p.title || '') ? `<a href="/program-ejen.html" aria-label="Baca Program Ejen WAHH AIR">${card}</a>` : card;
   }).join('');
 }
 
