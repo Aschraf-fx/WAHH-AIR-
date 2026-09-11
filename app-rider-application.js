@@ -73,6 +73,19 @@
     return out.path;
   }
 
+  async function notifyAdminRegistration(userId){
+    if (!userId) return;
+    try {
+      await fetch('/api/telegram-registration-notify',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({userId})
+      });
+    } catch (err) {
+      console.warn('Admin Telegram notification failed:', err);
+    }
+  }
+
   // Replace only the registration handler. Login and every other app flow remain untouched.
   register = async function(e){
     e.preventDefault();
@@ -128,6 +141,8 @@
       await cleanupPendingPhoto(uploadedPath);
       return toast(error.message, 'error');
     }
+
+    await notifyAdminRegistration(data?.user?.id);
 
     closeModal('registerModal');
     document.getElementById('registerForm').reset();
