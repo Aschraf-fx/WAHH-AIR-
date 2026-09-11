@@ -25,34 +25,15 @@ async function openRiderProfileReview(publicId){
   body.innerHTML='<div class="empty-state">Memuatkan profil Rider...</div>';
   modal.classList.remove('hidden');
 
-  const {data:member,error:me}=await state.supabase.rpc('admin_list_members');
-  if(me){body.innerHTML=`<div class="empty-state"><strong>Ralat</strong><br>${esc(me.message)}</div>`;return;}
-  const profile=(member||[]).find(x=>x.public_id===publicId && x.role==='rider');
+  const {data,error}=await state.supabase.rpc('admin_get_rider_profile',{p_public_id:publicId});
+  if(error){body.innerHTML=`<div class="empty-state"><strong>Ralat</strong><br>${esc(error.message)}</div>`;return;}
+  const profile=Array.isArray(data)?data[0]:data;
   if(!profile){body.innerHTML='<div class="empty-state">Profil Rider tidak ditemui.</div>';return;}
-
-  const {data:app,error:ae}=await state.supabase
-    .from('rider_applications')
-    .select('ic_number,profile_photo_path,terms_text,terms_accepted_at,created_at')
-    .eq('user_id',profile.id || '00000000-0000-0000-0000-000000000000')
-    .maybeSingle();
-
-  let application=app;
-  if(!application){
-    const {data:rows,error:re}=await state.supabase.from('rider_applications').select('user_id,ic_number,profile_photo_path,terms_text,terms_accepted_at,created_at');
-    if(re){body.innerHTML=`<div class="empty-state"><strong>Ralat</strong><br>${esc(re.message)}</div>`;return;}
-    const {data:pRow,error:pe}=await state.supabase.from('profiles').select('id').eq('public_id',publicId).single();
-    if(pe){body.innerHTML=`<div class="empty-state"><strong>Ralat</strong><br>${esc(pe.message)}</div>`;return;}
-    application=(rows||[]).find(x=>x.user_id===pRow.id) || null;
-  }
-
-  if(ae && !application){body.innerHTML=`<div class="empty-state"><strong>Ralat</strong><br>${esc(ae.message)}</div>`;return;}
-  if(!application){body.innerHTML='<div class="empty-state"><strong>Belum lengkap</strong><br>Rider ini belum mempunyai rekod IC, gambar formal atau T&C.</div>';return;}
+  if(!profile.ic_number || !profile.profile_photo_path || !profile.terms_text){body.innerHTML='<div class="empty-state"><strong>Belum lengkap</strong><br>Rider ini belum mempunyai rekod IC, gambar formal atau T&C.</div>';return;}
 
   let photoUrl='';
-  if(application.profile_photo_path){
-    const {data:signed,error:se}=await state.supabase.storage.from('rider-profiles').createSignedUrl(application.profile_photo_path,300);
-    if(!se) photoUrl=signed?.signedUrl||'';
-  }
+  const {data:signed,error:se}=await state.supabase.storage.from('rider-profiles').createSignedUrl(profile.profile_photo_path,300);
+  if(!se) photoUrl=signed?.signedUrl||'';
 
   body.innerHTML=`
     <div class="page-head" style="margin-bottom:14px"><div><span class="eyebrow">SEMAKAN RIDER</span><h1 style="font-size:1.7rem">${esc(profile.full_name)}</h1><p>${esc(profile.public_id)} • ${esc(profile.phone||'-')}</p></div></div>
@@ -64,10 +45,11 @@ async function openRiderProfileReview(publicId){
       <section class="panel" style="margin-top:0">
         <div class="panel-head"><div><h3>Maklumat Peribadi</h3><p>Maklumat ini private dan untuk semakan Admin sahaja.</p></div></div>
         <div class="quick-card"><strong>Nama penuh</strong><span>${esc(profile.full_name)}</span></div>
-        <div class="quick-card" style="margin-top:10px"><strong>No. IC</strong><span>${esc(application.ic_number)}</span></div>
+        <div class="quick-card" style="margin-top:10px"><strong>No. IC</strong><span>${esc(profile.ic_number)}</span></div>
         <div class="quick-card" style="margin-top:10px"><strong>No. telefon</strong><span>${esc(profile.phone||'-')}</span></div>
-        <div class="quick-card" style="margin-top:10px"><strong>T&C diterima</strong><span>${dateMY(application.terms_accepted_at)}</span></div>
+        <div class="quick-card" style="margin-top:10px"><strong>Status akaun</strong><span>${esc(profile.status||'-')}</span></div>
+        <div class="quick-card" style="margin-top:10px"><strong>T&C diterima</strong><span>${dateMY(profile.terms_accepted_at)}</span></div>
       </section>
     </div>
-    <section class="panel"><div class="panel-head"><div><h3>Pengakuan Rider</h3><p>Salinan T&C yang dipersetujui semasa pendaftaran.</p></div></div><div class="quick-card" style="white-space:pre-wrap;line-height:1.65">${esc(application.terms_text)}</div></section>`;
+    <section class="panel"><div class="panel-head"><div><h3>Pengakuan Rider</h3><p>Salinan T&C yang dipersetujui semasa pendaftaran.</p></div></div><div class="quick-card" style="white-space:pre-wrap;line-height:1.65">${esc(profile.terms_text)}</div></section>`;
 }
