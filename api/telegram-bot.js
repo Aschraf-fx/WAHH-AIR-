@@ -103,6 +103,7 @@ module.exports=async function handler(req,res){
       else if(raw){
         try{
           if(await chiefModeActive(supabase,chatId)){
+            await sendMessage(chatId,'🧠 <b>CHIEF AI</b>\n\nMesej diterima. Sedang fikir...');
             await handleConversation(supabase,chatId,raw);
           }else{
             await sendHomeMenu(chatId);
