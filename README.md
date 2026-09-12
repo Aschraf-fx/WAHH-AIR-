@@ -1,54 +1,64 @@
-# WAHH AIR! — GitHub Pages + Firebase Firestore
+# WAHH AIR! Management System
 
-Aplikasi stok, bancuhan, rider dan keuntungan yang boleh sync antara telefon dan komputer.
+Vanilla **HTML/CSS/JavaScript** frontend, **Supabase** Authentication/Postgres/Storage, **Vercel** hosting/serverless functions, and GitHub deployment.
 
-## 1. Cipta Firebase project
+## Included
 
-1. Buka Firebase Console dan cipta project.
-2. Tambah **Web App**.
-3. Salin `firebaseConfig` yang diberi.
-4. Buka `firebase-config.js` dan gantikan semua nilai `PASTE_...`.
+- Public landing page with WAHH AIR branding, posters, flavour stock and public Rider/Ejen IDs.
+- Login roles: Rider / Ejen / Admin. Public registration is Rider/Ejen only.
+- Supabase RLS + security-definer RPCs protect private user data.
+- Rider/Ejen stock, sales, commission and private profile.
+- Every finalized sale automatically updates stock/accounting and generates an Admin-only Sales Settlement invoice.
+- Admin: stock allocation/return/correction, production, flavours, materials, recipes, weighted-average material costs, purchases, expenses, sales-on-behalf, invoices, accounting, partner distribution, posters and audit logs.
+- Secure account suspension/deletion. Passwords and Auth UUIDs are never displayed in the Admin UI.
 
-## 2. Aktifkan Authentication
+## 1. Supabase setup
 
-1. Firebase Console > Authentication > Get started.
-2. Sign-in method > **Email/Password** > Enable.
+Create a new Supabase project. In **SQL Editor**, run these files in this exact order:
 
-## 3. Aktifkan Firestore
+1. `supabase/01-schema.sql`
+2. `supabase/02-user-rpcs.sql`
+3. `supabase/03a-admin-operations.sql`
+4. `supabase/03b-admin-finance.sql`
+5. `supabase/04-security.sql`
 
-1. Firebase Console > Firestore Database > Create database.
-2. Pilih lokasi terdekat yang tersedia.
-3. Buka tab Rules.
-4. Salin kandungan `firestore.rules`, kemudian Publish.
+Enable Email/Password authentication. For quick testing you may disable Confirm Email; for production, enable confirmation and set Site URL / Redirect URLs to the Vercel domain.
 
-Rules ini memastikan setiap akaun hanya boleh baca/tulis datanya sendiri.
+After deployment, register your own account once as Rider/Ejen. Then run `supabase/ADMIN_SETUP.sql` after replacing `YOUR_ADMIN_EMAIL` with your email. That promotes the account to `WA-000001` Admin.
 
-## 4. Upload ke GitHub
+## 2. Vercel environment variables
 
-Upload fail berikut ke root repository:
+Supabase now recommends the newer publishable/secret API key system. Add these under Vercel Project → Settings → Environment Variables:
 
-- `index.html`
-- `firebase-config.js`
-- `firestore.rules`
-- `README.md`
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SECRET_KEY`
 
-Jangan buang `firebase-config.js`. Firebase web config bukan password; keselamatan sebenar datang daripada Authentication dan Firestore Rules.
+The app also accepts the legacy `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` names as fallbacks.
 
-## 5. Hidupkan GitHub Pages
+`SUPABASE_SECRET_KEY` / legacy service-role key is server-only. Never expose it in HTML or browser JavaScript.
 
-1. Repository > Settings > Pages.
-2. Source: **Deploy from a branch**.
-3. Branch: `main`, folder `/ (root)`.
-4. Save.
-5. Buka URL GitHub Pages yang diberikan.
+## 3. GitHub + Vercel
 
-## Data lama
+Import this repository into Vercel with Framework Preset **Other**. No build command is needed. Vercel serves `index.html` and `/api/*` serverless functions. Once connected, pushes to the production branch auto-deploy.
 
-Pada kali pertama akaun log masuk, jika Firestore masih kosong, data localStorage pada peranti itu akan dihantar ke Firestore secara automatik. Selepas itu, gunakan akaun sama pada semua peranti.
+## Accounting model
 
-## Ujian penting
+`Net Profit = Revenue - COGS - Commission - Operating Expenses`
 
-- Daftar akaun pada peranti pertama.
-- Pastikan status menunjukkan `Semua data telah sync`.
-- Log masuk akaun sama pada peranti kedua.
-- Tambah stok pada satu peranti dan lihat perubahan muncul pada peranti lain.
+Raw-material purchases increase inventory value rather than being treated as an immediate P&L expense. Material purchases update weighted-average cost. Product COGS comes from recipes/current material costs, falling back to `manual_unit_cogs` when no usable recipe cost exists.
+
+Partner distribution uses Net Profit, subtracts an optional Business Reserve, then splits distributable profit according to active partner percentages. Default seed is two partners at 50/50 and can be edited by Admin.
+
+## Invoice behavior
+
+Invoices are immutable sale snapshots created automatically at finalization. Rider/Ejen do not have invoice access. Admin can view them and use **Print / Save PDF**. If an invoice is voided before commission is paid, the sale is voided and stock is returned to the seller with an audit trail.
+
+## Security
+
+- RLS is enabled across business tables.
+- Users cannot directly change their role or account status.
+- Rider/Ejen self-service operations are scoped by `auth.uid()`.
+- Admin operations accept Public IDs such as `WR-000001`; the Admin UI does not expose Auth UUIDs.
+- Account deletion is server-side and verifies the logged-in Admin before using the Supabase secret/service-role key.
+- Supabase Auth passwords are never readable by the app.

@@ -1,0 +1,31 @@
+.tiktok-history-panel{margin-top:18px}
+.tiktok-history-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.tiktok-history-head h3{margin:0 0 4px}
+.tiktok-history-head p{margin:0;line-height:1.5}
+.tiktok-history-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+.tiktok-history-stat{border:1px solid var(--border,#e5e7eb);border-radius:12px;padding:12px;min-width:0}
+.tiktok-history-stat strong{display:block;font-size:18px;line-height:1.2;margin-bottom:4px}
+.tiktok-history-stat span{display:block;font-size:12px;line-height:1.4;word-break:break-word}
+.tiktok-latest-card{border:1px solid var(--border,#e5e7eb);border-radius:14px;padding:14px;margin:0 0 16px;background:rgba(0,0,0,.015)}
+.tiktok-latest-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.tiktok-latest-title{margin:0 0 6px;font-size:15px;line-height:1.4}
+.tiktok-latest-caption{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
+.tiktok-meta-grid{display:grid;grid-template-columns:140px minmax(0,1fr);gap:7px 14px;margin-top:12px;font-size:13px;line-height:1.45}
+.tiktok-meta-label{font-weight:700}
+.tiktok-meta-value{min-width:0;overflow-wrap:anywhere}
+.tiktok-history-table-wrap{overflow-x:auto}
+.tiktok-history-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.tiktok-history-table th,.tiktok-history-table td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--border,#e5e7eb);line-height:1.45}
+.tiktok-history-table th{font-size:12px;white-space:nowrap}
+.tiktok-history-table td{font-size:13px;overflow-wrap:anywhere}
+.tiktok-history-table th:nth-child(1),.tiktok-history-table td:nth-child(1){width:145px}
+.tiktok-history-table th:nth-child(2),.tiktok-history-table td:nth-child(2){width:110px}
+.tiktok-history-table th:nth-child(4),.tiktok-history-table td:nth-child(4){width:150px}
+.tiktok-history-table th:nth-child(5),.tiktok-history-table td:nth-child(5){width:125px}
+.tiktok-history-status{display:inline-flex;align-items:center;justify-content:center;min-height:26px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;line-height:1.2;text-align:center;white-space:nowrap}
+.tiktok-history-status.posted{background:#dcfce7;color:#166534}
+.tiktok-history-status.scheduled{background:#fef3c7;color:#92400e}
+.tiktok-history-status.failed{background:#fee2e2;color:#991b1b}
+.tiktok-history-status.other{background:#e5e7eb;color:#374151}
+.tiktok-history-empty{padding:18px 0;text-align:center;line-height:1.5}
+@media(max-width:760px){.tiktok-history-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.tiktok-meta-grid{grid-template-columns:1fr;gap:3px}.tiktok-meta-label{margin-top:7px}.tiktok-history-table{min-width:760px}}

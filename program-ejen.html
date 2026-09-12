@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a1f52" />
+  <title>Program Ejen WAHH AIR</title>
+  <link rel="icon" href="assets/logo.jpg" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="program-ejen.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header class="topbar agent-topbar">
+    <a class="brand" href="/" aria-label="Kembali ke WAHH AIR">
+      <img src="assets/logo.jpg" alt="WAHH AIR logo" />
+      <div><strong>WAHH AIR!</strong><span>Program Ejen</span></div>
+    </a>
+    <a class="btn ghost" href="/">Kembali</a>
+  </header>
+
+  <main class="agent-page">
+    <section class="agent-hero shell">
+      <div>
+        <span class="eyebrow">PROGRAM EJEN WAHH AIR</span>
+        <h1>Jana Pendapatan Bersama WAHH AIR!</h1>
+        <p>Jadi ejen WAHH AIR, kumpulkan pesanan pelanggan dan simpan terus keuntungan anda sebelum membuat bayaran kepada owner.</p>
+        <div class="agent-actions">
+          <a class="btn primary large" href="/?register=agent">Daftar Sebagai Ejen</a>
+          <a id="adminContactBtn" class="btn ghost large is-disabled" href="#" aria-disabled="true">Hubungi Admin</a>
+        </div>
+        <p id="adminContactNote" class="contact-note">Memuatkan maklumat admin...</p>
+      </div>
+      <div class="agent-hero-card">
+        <div class="hero-stat"><span>Keuntungan</span><strong>RM1.20</strong><small>setiap botol</small></div>
+        <div class="hero-stat"><span>Minimum pesanan</span><strong>25</strong><small>botol</small></div>
+      </div>
+    </section>
+
+    <section class="shell agent-section">
+      <div class="section-heading compact-heading"><div><span class="eyebrow">CARA IA BERFUNGSI</span><h2>Langkah Menjadi Ejen</h2></div></div>
+      <div class="steps-grid">
+        <article class="step-card"><b>1</b><h3>Promosi & kumpul pesanan</h3><p>Ejen mempromosikan produk WAHH AIR dan mengumpulkan pesanan pelanggan.</p></article>
+        <article class="step-card"><b>2</b><h3>Terima bayaran pelanggan</h3><p>Ejen menerima pembayaran daripada pelanggan berdasarkan harga jual.</p></article>
+        <article class="step-card"><b>3</b><h3>Simpan keuntungan sendiri</h3><p>Ejen menolak dan menyimpan terus keuntungan sendiri sebelum membayar owner.</p></article>
+        <article class="step-card"><b>4</b><h3>Bayar owner</h3><p>Ejen membayar kepada owner berdasarkan harga ejen iaitu RM5.80 sebotol.</p></article>
+        <article class="step-card"><b>5</b><h3>Serah maklumat pesanan</h3><p>Ejen menyerahkan maklumat pesanan serta pilihan penghantaran kepada owner.</p></article>
+        <article class="step-card"><b>6</b><h3>Owner urus penghantaran</h3><p>Selepas pembayaran dilakukan, owner mengurus penghantaran mengikut pilihan ejen.</p></article>
+      </div>
+    </section>
+
+    <section class="shell agent-section">
+      <div class="section-heading compact-heading"><div><span class="eyebrow">HARGA & KEUNTUNGAN</span><h2>RM1.20 Keuntungan Setiap Botol</h2></div></div>
+      <div class="info-panel">
+        <div class="responsive-table"><table><thead><tr><th>Perkara</th><th>Harga sebotol</th></tr></thead><tbody><tr><td>Harga jual kepada pelanggan</td><td><strong>RM7.00</strong></td></tr><tr><td>Harga ejen / bayaran kepada owner</td><td><strong>RM5.80</strong></td></tr><tr><td>Keuntungan ejen</td><td><strong>RM1.20</strong></td></tr></tbody></table></div>
+        <div class="notice success-note"><strong>Keuntungan terus milik ejen.</strong><span>Ejen menyimpan terus keuntungan sebelum membayar owner. Ejen tidak perlu menunggu pembayaran komisen daripada owner.</span></div>
+      </div>
+      <div class="info-panel">
+        <h3>Contoh pengiraan</h3>
+        <div class="responsive-table"><table><thead><tr><th>Jumlah pesanan</th><th>Kutipan pelanggan</th><th>Bayaran kepada owner</th><th>Keuntungan ejen</th></tr></thead><tbody><tr><td>25 botol</td><td>RM175</td><td>RM145</td><td><strong>RM30</strong></td></tr><tr><td>50 botol</td><td>RM350</td><td>RM290</td><td><strong>RM60</strong></td></tr><tr><td>100 botol</td><td>RM700</td><td>RM580</td><td><strong>RM120</strong></td></tr></tbody></table></div>
+        <p class="muted calculation-note">Pengiraan ini tidak termasuk caj penghantaran.</p>
+      </div>
+    </section>
+
+    <section class="shell agent-section">
+      <div class="section-heading compact-heading"><div><span class="eyebrow">SYARAT PESANAN</span><h2>Pesanan Sehari Sebelum Penghantaran</h2></div></div>
+      <div class="rules-grid">
+        <article class="rule-card"><strong>Minimum 25 botol</strong><p>Minimum pesanan ejen kepada owner ialah 25 botol.</p></article>
+        <article class="rule-card"><strong>Serah sehari sebelum</strong><p>Pesanan perlu diserahkan kepada owner sehari sebelum hari penghantaran.</p></article>
+        <article class="rule-card"><strong>Contoh</strong><p>Untuk penghantaran Sabtu, pesanan perlu diserahkan pada Jumaat.</p></article>
+        <article class="rule-card"><strong>Bayaran dahulu</strong><p>Owner membuat penghantaran selepas pembayaran dilakukan.</p></article>
+      </div>
+      <div class="notice"><strong>Tiada waktu tutup khusus ditetapkan.</strong><span>Pesanan hanya perlu diserahkan sehari sebelum hari penghantaran.</span></div>
+    </section>
+
+    <section class="shell agent-section delivery-section">
+      <div class="section-heading compact-heading"><div><span class="eyebrow">PILIHAN PENGHANTARAN</span><h2>Pilih Cara Yang Sesuai</h2></div></div>
+      <div class="delivery-grid">
+        <article class="delivery-card">
+          <span class="option-badge">PILIHAN A</span><h3>Ejen hantar sendiri kepada pelanggan</h3>
+          <ol><li>Selepas pembayaran, owner menghantar pesanan kepada ejen.</li><li>Penghantaran owner kepada ejen adalah <strong>percuma dalam lingkungan 20km dari base.</strong></li><li>Jika ejen berada melebihi 20km: <strong>“Sila hubungi admin untuk semakan penghantaran.”</strong></li><li>Ejen kemudian menghantar pesanan kepada pelanggan.</li><li>Ejen boleh menetapkan sendiri caj penghantaran kepada pembeli.</li><li><strong>100% caj penghantaran milik ejen</strong>, sebagai tambahan kepada keuntungan jualan RM1.20 sebotol.</li></ol>
+          <div class="distance-highlight"><strong>Owner → Ejen</strong><span>Percuma sehingga 20km dari base</span></div>
+        </article>
+        <article class="delivery-card">
+          <span class="option-badge">PILIHAN B</span><h3>Owner hantar terus kepada pelanggan</h3>
+          <ol><li>Ejen mengumpulkan pesanan dan menerima pembayaran pelanggan.</li><li>Ejen menyerahkan maklumat pesanan serta alamat pelanggan kepada owner.</li><li>Penghantaran adalah <strong>percuma dalam lingkungan 5km dari Bandar Seremban Selatan.</strong></li><li>Lebih 5km, caj ialah <strong>RM0.50 bagi setiap kilometer tambahan selepas 5km.</strong></li><li>Caj penghantaran dikutip bersama bayaran pelanggan dan diserahkan kepada owner.</li><li>Caj ini <strong>bukan keuntungan ejen.</strong></li></ol>
+          <div class="responsive-table mini-table"><table><thead><tr><th>Jarak</th><th>Caj penghantaran</th></tr></thead><tbody><tr><td>5km atau kurang</td><td>Percuma</td></tr><tr><td>6km</td><td>RM0.50</td></tr><tr><td>8km</td><td>RM1.50</td></tr><tr><td>10km</td><td>RM2.50</td></tr></tbody></table></div>
+          <div class="distance-highlight"><strong>Owner → Pelanggan</strong><span>Percuma sehingga 5km dari Bandar Seremban Selatan</span></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="shell agent-section">
+      <div class="section-heading compact-heading"><div><span class="eyebrow">SOALAN LAZIM</span><h2>Perkara Penting Sebelum Daftar</h2></div></div>
+      <div class="faq-list">
+        <details><summary>Berapa minimum pesanan ejen?</summary><p>Minimum pesanan kepada owner ialah 25 botol.</p></details>
+        <details><summary>Bila perlu hantar pesanan kepada owner?</summary><p>Sehari sebelum hari penghantaran. Tiada waktu tutup khusus ditetapkan buat masa ini.</p></details>
+        <details><summary>Bila ejen dapat keuntungan?</summary><p>Ejen terus menyimpan beza RM1.20 sebotol daripada kutipan pelanggan sebelum membayar owner.</p></details>
+        <details><summary>Jika ejen mahu hantar sendiri, siapa dapat caj penghantaran?</summary><p>100% caj penghantaran kepada pembeli adalah milik ejen.</p></details>
+        <details><summary>Berapa jarak percuma owner hantar kepada ejen?</summary><p>Percuma dalam lingkungan 20km dari base. Lebih 20km, sila hubungi admin untuk semakan.</p></details>
+        <details><summary>Berapa jarak percuma owner hantar terus kepada pelanggan?</summary><p>Percuma dalam lingkungan 5km dari Bandar Seremban Selatan. Selepas 5km, caj RM0.50 bagi setiap kilometer tambahan.</p></details>
+        <details><summary>Adakah caj penghantaran owner kepada pelanggan menjadi keuntungan ejen?</summary><p>Tidak. Caj itu dikutip bersama pembayaran pelanggan dan diserahkan kepada owner.</p></details>
+      </div>
+    </section>
+
+    <section class="shell agent-cta-bottom">
+      <div><span class="eyebrow">BERSEDIA NAK MULA?</span><h2>Daftar sebagai Ejen WAHH AIR hari ini.</h2><p>Fahami aliran pesanan, keuntungan dan penghantaran dahulu, kemudian daftar bila anda bersedia.</p></div>
+      <div class="agent-actions"><a class="btn primary large" href="/?register=agent">Daftar Sebagai Ejen</a><a id="adminContactBtnBottom" class="btn ghost large is-disabled" href="#" aria-disabled="true">Hubungi Admin</a></div>
+    </section>
+  </main>
+
+  <footer class="agent-footer"><div class="shell">WAHH AIR! • Program Ejen</div></footer>
+  <script src="program-ejen.js" defer></script>
+</body>
+</html>

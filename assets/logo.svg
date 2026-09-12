@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="WAHH AIR logo">
+<defs>
+  <linearGradient id="rainbow" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#12a9b8"/><stop offset=".2" stop-color="#a8c500"/><stop offset=".4" stop-color="#ffc000"/><stop offset=".58" stop-color="#f47a1f"/><stop offset=".76" stop-color="#ed243c"/><stop offset="1" stop-color="#764aa0"/>
+  </linearGradient>
+  <linearGradient id="word" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071b49"/><stop offset=".48" stop-color="#0aa6b5"/><stop offset=".5" stop-color="#e5125b"/><stop offset="1" stop-color="#f67a1c"/></linearGradient>
+</defs>
+<circle cx="256" cy="256" r="240" fill="#fff" stroke="url(#rainbow)" stroke-width="16"/>
+<circle cx="256" cy="256" r="218" fill="none" stroke="#071b49" stroke-width="5"/>
+<path d="M163 143c38-12 68-42 93-91 21 46 55 78 96 92-34-2-69-19-96-53-27 34-59 50-93 52z" fill="#071b49"/>
+<path d="M196 129c22-11 43-30 60-57 15 26 36 46 61 58-25-7-45-19-61-36-18 19-38 30-60 35z" fill="#d89a24"/>
+<text x="256" y="250" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-style="italic" font-size="92" fill="url(#word)">WAHH</text>
+<text x="256" y="334" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-style="italic" font-size="92" fill="url(#word)">AIR!</text>
+<text x="256" y="371" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" font-weight="700" letter-spacing="5" fill="#071b49">AIR MINUMAN BERPERISA</text>
+<path d="M135 398a150 150 0 0 0 242 0" fill="none" stroke="#d89a24" stroke-width="4"/>
+<text x="256" y="430" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="700" letter-spacing="3" fill="#071b49">ANAK JATI NISMILAN</text>
+<text x="256" y="461" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="700" letter-spacing="4" fill="#b77816">PRODUK MUSLIM</text>
+</svg>

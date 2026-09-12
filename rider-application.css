@@ -1,0 +1,11 @@
+/* Rider-only registration verification fields */
+.rider-application-box{display:grid;gap:13px;padding:15px;border:1px solid #dbe4f0;border-radius:14px;background:#f8fbff;text-align:left}
+.rider-application-box h3{margin:0;color:var(--navy);font-size:1rem}
+.rider-application-box .rider-note{margin:0;color:var(--muted);font-size:.78rem;line-height:1.55}
+.rider-tnc{border:1px solid #d7dfeb;border-radius:12px;background:#fff;padding:13px;max-height:210px;overflow:auto;color:#344054;font-size:.8rem;line-height:1.62}
+.rider-tnc p{margin:0}.rider-tnc p+p{margin-top:10px}
+.rider-consent{display:flex!important;grid-template-columns:none!important;align-items:flex-start;gap:10px!important;cursor:pointer}
+.rider-consent input{width:18px!important;height:18px;min-height:18px!important;flex:0 0 18px;margin-top:2px}
+.rider-consent span{font-size:.78rem;line-height:1.5;color:#344054}
+.rider-sensitive{display:flex;gap:8px;align-items:flex-start;padding:11px 12px;border-radius:11px;background:#fff5e8;border:1px solid #f1dfbd;color:#77571e;font-size:.76rem;line-height:1.45}
+@media(max-width:760px){.rider-application-box{padding:13px 11px}.rider-tnc{max-height:180px}}
