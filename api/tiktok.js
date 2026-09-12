@@ -6,6 +6,11 @@ const SCOPES = ['user.info.basic', 'video.publish'];
 
 function send(res, status, body) { return res.status(status).json(body); }
 function b64url(input) { return Buffer.from(input).toString('base64url'); }
+function getRedirectUri() {
+  const raw = String(process.env.TIKTOK_REDIRECT_URI || '').trim();
+  if (!raw) return '';
+  return raw.replace('/api/tiktok/callback', '/api/tiktok-callback');
+}
 function signState(payload) {
   const secret = process.env.TIKTOK_STATE_SECRET || process.env.TIKTOK_CLIENT_SECRET;
   if (!secret) throw new Error('TIKTOK_CLIENT_SECRET belum ditetapkan.');
@@ -53,7 +58,7 @@ module.exports = async function handler(req, res) {
 
     if (action === 'start') {
       const clientKey = process.env.TIKTOK_CLIENT_KEY;
-      const redirectUri = process.env.TIKTOK_REDIRECT_URI;
+      const redirectUri = getRedirectUri();
       if (!clientKey || !process.env.TIKTOK_CLIENT_SECRET || !redirectUri) throw new Error('TikTok environment variables belum lengkap.');
       const state = signState({ uid: user.id, ts: Date.now(), nonce: crypto.randomBytes(16).toString('hex') });
       const u = new URL(AUTH_URL);
