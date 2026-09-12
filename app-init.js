@@ -21,6 +21,12 @@
     l.href='ai-office.css?v=20260912-1825';
     document.head.appendChild(l);
   }
+  if(!document.querySelector('link[href^="tiktok-post-history.css"]')){
+    const l=document.createElement('link');
+    l.rel='stylesheet';
+    l.href='tiktok-post-history.css?v=20260912-2115';
+    document.head.appendChild(l);
+  }
 
   (async()=>{
     try{await load('app-admin-events.js?v=20260912-1437');}
@@ -43,6 +49,9 @@
 
     try{await load('app-tiktok-test-post.js?v=20260912-2105');}
     catch(e){console.error('Gagal memuatkan modul TikTok Test Post.',e);}
+
+    try{await load('app-tiktok-post-history.js?v=20260912-2115');}
+    catch(e){console.error('Gagal memuatkan TikTok Post History.',e);}
 
     init();
   })();
