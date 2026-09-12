@@ -2,7 +2,8 @@ const {
   adminChatId,webhookSecret,getSupabase,answerCallback,
   getProfileByPublicId,sendProfileCard,sendMainMenu,sendList,sendMessage
 }=require('../lib/telegram-admin');
-const {sendNaturalCommandResult,setApprovalFromTelegram}=require('../lib/telegram-ai-office');
+const {setApprovalFromTelegram}=require('../lib/telegram-ai-office');
+const {handleConversation,resetConversation}=require('../lib/telegram-chief-chat');
 
 function authorizedChat(update){
   const allowed=adminChatId();
@@ -32,11 +33,12 @@ module.exports=async function handler(req,res){
       if(['/start','/menu','menu'].includes(text)) await sendMainMenu(chatId);
       else if(text==='/rider') await sendList(supabase,chatId,'rider',0);
       else if(text==='/ejen' || text==='/agent') await sendList(supabase,chatId,'agent',0);
+      else if(text==='/new' || text==='/reset') await resetConversation(supabase,chatId);
       else if(raw){
         try{
-          await sendNaturalCommandResult(supabase,chatId,raw);
+          await handleConversation(supabase,chatId,raw);
         }catch(aiErr){
-          console.error('Telegram AI Office error:',aiErr);
+          console.error('Telegram Chief conversation error:',aiErr);
           await sendMessage(chatId,`⚠️ <b>AI OFFICE GAGAL</b>\n\n${String(aiErr.message||'Ralat tidak diketahui').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}`);
         }
       }else await sendMainMenu(chatId);
