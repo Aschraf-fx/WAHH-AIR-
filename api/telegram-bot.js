@@ -1,7 +1,8 @@
 const {
   adminChatId,webhookSecret,getSupabase,answerCallback,
-  getProfileByPublicId,sendProfileCard,sendMainMenu,sendList
+  getProfileByPublicId,sendProfileCard,sendMainMenu,sendList,sendMessage
 }=require('../lib/telegram-admin');
+const {sendNaturalCommandResult,setApprovalFromTelegram}=require('../lib/telegram-ai-office');
 
 function authorizedChat(update){
   const allowed=adminChatId();
@@ -26,11 +27,19 @@ module.exports=async function handler(req,res){
     const chatId=adminChatId();
 
     if(update.message){
-      const text=String(update.message.text||'').trim().toLowerCase();
+      const raw=String(update.message.text||'').trim();
+      const text=raw.toLowerCase();
       if(['/start','/menu','menu'].includes(text)) await sendMainMenu(chatId);
       else if(text==='/rider') await sendList(supabase,chatId,'rider',0);
       else if(text==='/ejen' || text==='/agent') await sendList(supabase,chatId,'agent',0);
-      else await sendMainMenu(chatId);
+      else if(raw){
+        try{
+          await sendNaturalCommandResult(supabase,chatId,raw);
+        }catch(aiErr){
+          console.error('Telegram AI Office error:',aiErr);
+          await sendMessage(chatId,`⚠️ <b>AI OFFICE GAGAL</b>\n\n${String(aiErr.message||'Ralat tidak diketahui').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}`);
+        }
+      }else await sendMainMenu(chatId);
       return res.status(200).json({ok:true});
     }
 
@@ -52,6 +61,25 @@ module.exports=async function handler(req,res){
         const publicId=data.slice(2);
         const profile=await getProfileByPublicId(supabase,publicId);
         if(profile) await sendProfileCard(supabase,chatId,profile);
+        return res.status(200).json({ok:true});
+      }
+      if(data.startsWith('ai|')){
+        const [,decision,taskId]=data.split('|');
+        try{
+          const r=await setApprovalFromTelegram(supabase,taskId,decision);
+          if(r.already){
+            await sendMessage(chatId,`ℹ️ <b>AI OFFICE</b>\n\nTask ini sudah diproses.\nStatus: <b>${String(r.status||'-').toUpperCase()}</b>`);
+          }else if(decision==='approve'){
+            await sendMessage(chatId,`✅ <b>APPROVED</b>\n\nTask telah diluluskan dan status AI Office telah diselaraskan.`);
+          }else if(decision==='reject'){
+            await sendMessage(chatId,`❌ <b>REJECTED</b>\n\nTask telah ditolak dan status AI Office telah diselaraskan.`);
+          }else if(decision==='revise'){
+            await sendMessage(chatId,`✏️ <b>REVISION REQUESTED</b>\n\nTask telah ditandakan untuk revision. Hantar arahan pembetulan sebagai mesej baru kepada Chief AI.`);
+          }
+        }catch(e){
+          console.error('Telegram approval callback error:',e);
+          await sendMessage(chatId,`⚠️ <b>APPROVAL GAGAL</b>\n\n${String(e.message||'Ralat tidak diketahui').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}`);
+        }
         return res.status(200).json({ok:true});
       }
     }
