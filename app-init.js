@@ -29,6 +29,9 @@
     try{await load('app-sales-documents.js?v=20260912-1545');}
     catch(e){console.error('Gagal memuatkan modul Dokumen Jualan.',e);}
 
+    try{await load('app-sales-documents-wording-fix.js?v=20260912-1549');}
+    catch(e){console.error('Gagal memuatkan pembetulan label Dokumen Jualan.',e);}
+
     init();
   })();
 })();
