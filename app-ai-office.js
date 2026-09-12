@@ -23,8 +23,20 @@
     return data;
   }
 
+  async function tiktokApi(payload){
+    const token=state.session?.access_token;if(!token)throw new Error('Session login tiada.');
+    const r=await fetch('/api/tiktok',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(payload)});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);
+    return data;
+  }
+
   async function renderAiOffice(root){
-    const o=await overview(),agents=o.agents||[],tasks=o.recent_tasks||[],usage=o.month_usage||{};
+    const [o,tiktok]=await Promise.all([
+      overview(),
+      tiktokApi({action:'status'}).catch(e=>({connected:false,error:e.message}))
+    ]);
+    const agents=o.agents||[],tasks=o.recent_tasks||[],usage=o.month_usage||{};
     root.innerHTML=pageHead('ADMIN • AI OFFICE','WAHH AIR AI Staff','Owner → Chief AI → Marketing / Accounting / Social Media Handler. Agent hanya bekerja bila ada task.')+`
       <section class="ai-office-command panel">
         <div class="panel-head"><div><h3>Owner Command</h3><p>Beri arahan kepada Chief atau terus kepada department tertentu.</p></div></div>
@@ -36,17 +48,45 @@
       </section>
       <div class="kpi-grid">${kpi('Active Projects',num(o.active_projects))}${kpi('Tasks in Queue',num(o.queued))}${kpi('Needs Your Attention',num(o.waiting_approval))}${kpi('Agents at Work',num(o.working))}${kpi('Completed Today',num(o.completed_today))}${kpi('AI Usage Bulan Ini',`${num(Number(usage.input_tokens||0)+Number(usage.output_tokens||0))} token`,`${moneyCny(usage.estimated_cost)} reported/estimated`)}</div>
       <section class="panel"><div class="panel-head"><div><h3>AI Staff</h3><p>Model boleh ditukar tanpa ubah logic agent. API key kekal server-side.</p></div></div><div class="ai-agent-grid">${agents.map(agentCard).join('')}</div></section>
+      ${tiktokPanel(tiktok)}
       <section class="panel"><div class="panel-head"><div><h3>Task History</h3><p>Task gagal tidak hilang. Marketing dan Social Media output menunggu approval owner.</p></div></div>${taskTable(tasks)}</section>`;
 
     $('#aiCommandForm',root).addEventListener('submit',async e=>{e.preventDefault();const b=e.submitter;setBusy(b,true,'AI sedang bekerja...');try{const r=await callApi({action:'command',agent:$('#aiTarget',root).value,instruction:$('#aiInstruction',root).value.trim()});toast('Task selesai diproses.','success');if(r.result)showResultModal(r);await renderAiOffice(root);}catch(err){toast(err.message,'error');await renderAiOffice(root);}finally{setBusy(b,false);}});
     $('#aiRefresh',root).onclick=()=>renderAiOffice(root);
     $$('.ai-save-agent',root).forEach(b=>b.onclick=async()=>{const card=b.closest('.ai-agent-card'),code=card.dataset.code,model=$('.ai-model',card).value.trim(),budget=$('.ai-budget',card).value;const{error}=await state.supabase.rpc('admin_ai_update_agent',{p_code:code,p_model_name:model,p_monthly_budget:budget===''?null:Number(budget)});if(error)return toast(error.message,'error');toast(`${code.toUpperCase()} config disimpan.`,'success');renderAiOffice(root);});
     $$('.ai-test-agent',root).forEach(b=>b.onclick=async()=>{const code=b.closest('.ai-agent-card').dataset.code;setBusy(b,true,'Testing...');try{const r=await callApi({action:'test',agent:code});toast(`${code.toUpperCase()}: ${r.response}`,'success');}catch(e){toast(e.message,'error');}finally{setBusy(b,false);}});
+    const connectBtn=$('#tiktokConnectBtn',root);if(connectBtn)connectBtn.onclick=()=>connectTikTok(root,connectBtn);
     $$('.ai-approve',root).forEach(b=>b.onclick=()=>setApproval(root,b.dataset.id,'approved'));
     $$('.ai-reject',root).forEach(b=>b.onclick=async()=>{const f=window.prompt('Sebab reject:')||'';await setApproval(root,b.dataset.id,'rejected',f);});
     $$('.ai-revise',root).forEach(b=>b.onclick=async()=>{const f=window.prompt('Apa yang perlu direvise?');if(!f)return;await setApproval(root,b.dataset.id,'revision_requested',f);});
     $$('.ai-cancel',root).forEach(b=>b.onclick=async()=>{const ok=await confirmAction('Batalkan task?','Task queued ini akan ditandakan CANCELLED.');if(!ok)return;const{error}=await state.supabase.rpc('admin_ai_cancel_task',{p_task_id:b.dataset.id});if(error)return toast(error.message,'error');toast('Task dibatalkan.','success');renderAiOffice(root);});
     $$('.ai-view-result',root).forEach(b=>b.onclick=()=>{const t=tasks.find(x=>x.id===b.dataset.id);if(t)showResultModal({agent:t.agent_code,result:t.result_summary,task_id:t.id});});
+  }
+
+  function tiktokPanel(t){
+    if(t?.connected&&t.connection){
+      const c=t.connection;
+      return `<section class="panel"><div class="panel-head"><div><h3>🎵 TikTok Connection</h3><p>Social Media Handler boleh gunakan akaun TikTok yang telah diberi kebenaran.</p></div></div><div class="ai-agent-top">${c.avatar_url?`<img src="${esc(c.avatar_url)}" alt="TikTok" style="width:52px;height:52px;border-radius:50%;object-fit:cover">`:'<div class="ai-agent-avatar">🎵</div>'}<div><h3>${esc(c.display_name||'TikTok Connected')}</h3><span class="ai-status standby">CONNECTED</span><div class="muted" style="margin-top:6px">Scopes: ${esc((c.scopes||[]).join(', ')||'-')}</div></div></div></section>`;
+    }
+    return `<section class="panel"><div class="panel-head"><div><h3>🎵 TikTok Connection</h3><p>${t?.error?`Setup belum lengkap: ${esc(t.error)}`:'Connect akaun TikTok target user melalui OAuth sebelum kita test posting.'}</p></div></div><button class="btn primary" id="tiktokConnectBtn" type="button">Connect TikTok</button></section>`;
+  }
+
+  async function connectTikTok(root,btn){
+    const popup=window.open('about:blank','wahhTikTokOAuth','width=620,height=760');
+    if(!popup)return toast('Browser block popup. Benarkan popup untuk WAHH AIR.','error');
+    setBusy(btn,true,'Connecting...');
+    try{
+      const r=await tiktokApi({action:'start'});
+      popup.location.href=r.authorize_url;
+      const handler=async e=>{
+        if(e.origin!==window.location.origin||e.data?.type!=='wahh-tiktok-oauth')return;
+        window.removeEventListener('message',handler);
+        if(e.data.ok){toast('TikTok berjaya disambungkan.','success');await renderAiOffice(root);}
+        else toast(e.data.message||'TikTok connection gagal.','error');
+      };
+      window.addEventListener('message',handler);
+    }catch(e){try{popup.close();}catch{}toast(e.message,'error');}
+    finally{setBusy(btn,false);}
   }
 
   function agentCard(a){return `<article class="ai-agent-card" data-code="${esc(a.code)}"><div class="ai-agent-top"><div class="ai-agent-avatar">${icon[a.code]||'🤖'}</div><div><h3>${esc(a.display_name)}</h3><span class="ai-status ${esc(a.status)}">${esc(statusLabel[a.status]||a.status)}</span></div></div><p>${esc(a.description||'')}</p><div class="form-stack"><label>Model<input class="ai-model" value="${esc(a.model_name||'')}" placeholder="Masukkan model name dari provider"></label><label>Budget bulanan (CNY)<input class="ai-budget" type="number" min="0" step="0.01" value="${a.monthly_budget==null?'':a.monthly_budget}"></label><div class="row-actions"><button class="btn sm primary ai-save-agent" type="button">Simpan</button><button class="btn sm ghost ai-test-agent" type="button">Test Connection</button></div></div></article>`;}
