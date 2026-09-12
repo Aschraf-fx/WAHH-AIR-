@@ -9,21 +9,14 @@
   };
 
   async function appendCombinedBusinessSummary(root){
+    if(root.querySelector('.combined-business-summary'))return;
     const {data,error}=await state.supabase.rpc('admin_business_dashboard_summary');
-    if(error){
-      console.warn('Combined event dashboard unavailable:',error);
-      return;
-    }
+    if(error){console.warn('Combined event dashboard unavailable:',error);return;}
     const s=data?.[0]||{};
     const section=document.createElement('section');
-    section.className='panel';
+    section.className='panel combined-business-summary';
     section.innerHTML=`
-      <div class="panel-head">
-        <div>
-          <h3>Jumlah Bisnes — Rider/Ejen + Event</h3>
-          <p>Event hanya dikira selepas status Completed. Pending, Confirmed dan Cancelled tidak masuk revenue sebenar.</p>
-        </div>
-      </div>
+      <div class="panel-head"><div><h3>Jumlah Bisnes — Rider/Ejen + Event</h3><p>Event hanya dikira selepas status Completed. Pending, Confirmed dan Cancelled tidak masuk revenue sebenar.</p></div></div>
       <div class="kpi-grid">
         ${kpi('Hari Ini • Rider/Ejen',money(s.today_member_sales))}
         ${kpi('Hari Ini • Event Completed',money(s.today_event_sales))}
@@ -39,40 +32,29 @@
 
   function setKpi(root,label,value){
     $$('.kpi',root).forEach(card=>{
-      const l=$('.label',card)?.textContent?.trim();
-      if(l===label){
-        const v=$('.value',card);
-        if(v)v.innerHTML=value;
-      }
+      if($('.label',card)?.textContent?.trim()!==label)return;
+      const v=$('.value',card);
+      if(v&&v.innerHTML!==value)v.innerHTML=value;
     });
   }
 
-  function applySimpleEventUi(root=document){
-    const createMode=$('#evCostMode',root);
-    if(createMode){
-      createMode.innerHTML='<option value="combined">Kos produk / botol</option>';
-      createMode.value='combined';
-      createMode.disabled=true;
-      const base=$('#evBaseCost',root); if(base)base.disabled=false;
-      const label=createMode.closest('label'); if(label)label.childNodes[0].textContent='Kaedah kos ';
-      const baseLabel=base?.closest('label'); if(baseLabel)baseLabel.childNodes[0].textContent='Kos produk / botol (RM) ';
-    }
+  function simplifyMode(select,base){
+    if(!select||select.dataset.simpleApplied==='1')return;
+    select.dataset.simpleApplied='1';
+    select.innerHTML='<option value="combined">Kos produk / botol</option>';
+    select.value='combined';
+    select.disabled=true;
+    if(base)base.disabled=false;
+    const label=select.closest('label'); if(label?.childNodes?.[0])label.childNodes[0].textContent='Kaedah kos ';
+    const baseLabel=base?.closest('label'); if(baseLabel?.childNodes?.[0])baseLabel.childNodes[0].textContent='Kos produk / botol (RM) ';
+  }
 
-    const editMode=$('#edCostMode',root);
-    if(editMode){
-      editMode.innerHTML='<option value="combined">Kos produk / botol</option>';
-      editMode.value='combined';
-      editMode.disabled=true;
-      const base=$('#edBaseCost',root); if(base)base.disabled=false;
-      const label=editMode.closest('label'); if(label)label.childNodes[0].textContent='Kaedah kos ';
-      const baseLabel=base?.closest('label'); if(baseLabel)baseLabel.childNodes[0].textContent='Kos produk / botol (RM) ';
-    }
+  function applySimpleEventUi(root=document){
+    simplifyMode($('#evCostMode',root),$('#evBaseCost',root));
+    simplifyMode($('#edCostMode',root),$('#edBaseCost',root));
 
     const stockForm=$('#eventStockForm',root);
-    if(stockForm){
-      const section=stockForm.closest('section');
-      if(section)section.style.display='none';
-    }
+    if(stockForm){const section=stockForm.closest('section');if(section&&section.dataset.hiddenSimple!=='1'){section.dataset.hiddenSimple='1';section.style.display='none';}}
 
     const status=$('#edStatus',root)?.value;
     if(status==='cancelled'){
@@ -90,29 +72,24 @@
         note.innerHTML='<strong>Event Cancelled</strong><br><span class="muted">Jualan, revenue dan untung event ini tidak dikira. Bayaran pelanggan yang pernah diterima masih dipaparkan untuk rujukan/refund.</span>';
         head.insertAdjacentElement('afterend',note);
       }
-
-      $$('section.panel .muted',root).forEach(el=>{
-        if(el.textContent.includes('Untung boleh diagih')) el.textContent='Untung boleh diagih RM0.00 • Event cancelled';
-      });
+      $$('section.panel .muted',root).forEach(el=>{if(el.textContent.includes('Untung boleh diagih')&&!el.textContent.includes('Event cancelled'))el.textContent='Untung boleh diagih RM0.00 • Event cancelled';});
     }
   }
 
   document.addEventListener('submit',e=>{
     if(e.target?.id==='eventCreateForm'){
-      const mode=$('#evCostMode'); const base=$('#evBaseCost');
-      if(mode){mode.disabled=false;mode.value='combined';}
-      if(base)base.disabled=false;
+      const mode=$('#evCostMode'),base=$('#evBaseCost');if(mode){mode.disabled=false;mode.value='combined';}if(base)base.disabled=false;
     }
     if(e.target?.id==='eventEditForm'){
-      const mode=$('#edCostMode'); const base=$('#edBaseCost');
-      if(mode){mode.disabled=false;mode.value='combined';}
-      if(base)base.disabled=false;
+      const mode=$('#edCostMode'),base=$('#edBaseCost');if(mode){mode.disabled=false;mode.value='combined';}if(base)base.disabled=false;
     }
   },true);
 
+  let scheduled=false;
   const observer=new MutationObserver(()=>{
-    const root=$('#portalContent');
-    if(root)applySimpleEventUi(root);
+    if(scheduled)return;
+    scheduled=true;
+    requestAnimationFrame(()=>{scheduled=false;const root=$('#portalContent');if(root)applySimpleEventUi(root);});
   });
   const portal=$('#portalContent');
   if(portal)observer.observe(portal,{childList:true,subtree:true});
