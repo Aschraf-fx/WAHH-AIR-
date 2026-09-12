@@ -16,7 +16,7 @@ const dateMY = (v) => v ? new Intl.DateTimeFormat('ms-MY', { dateStyle: 'medium'
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const monthStartISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`; };
 const monthEndISO = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth()+1, 0).toISOString().slice(0,10); };
-const esc = (v='') => String(v).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));
+const esc = (v='') => String(v).replace(/[&<>'\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','\"':'&quot;'}[c]));
 
 function toast(message, type = '') {
   const el = $('#toast');
@@ -60,13 +60,21 @@ async function init() {
           toast(error ? error.message : 'Password berjaya dikemas kini.', error ? 'error' : 'success');
         }
       }
-      if (session) await enterPortal(); else showPublic();
+      if (!session) {
+        showPublic();
+        return;
+      }
+      // Supabase may emit TOKEN_REFRESHED / SIGNED_IN again when a browser tab
+      // regains focus. If the portal is already active, keep the current module
+      // instead of re-entering the portal and resetting it to Dashboard.
+      if (state.profile) return;
+      await enterPortal();
     });
 
     const { data } = await state.supabase.auth.getSession();
     state.session = data.session;
     await loadPublic();
-    if (state.session) await enterPortal();
+    if (state.session && !state.profile) await enterPortal();
   } catch (e) {
     console.warn(e);
     $('#publicStockGrid').innerHTML = setupNotice('Supabase belum disambungkan. Isi Environment Variables di Vercel selepas menjalankan schema.sql.');
