@@ -18,7 +18,7 @@
   if(!document.querySelector('link[href^="ai-office.css"]')){
     const l=document.createElement('link');
     l.rel='stylesheet';
-    l.href='ai-office.css?v=20260912-1825';
+    l.href='ai-office.css?v=20260912-2131';
     document.head.appendChild(l);
   }
   if(!document.querySelector('link[href^="tiktok-post-history.css"]')){
