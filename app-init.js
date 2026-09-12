@@ -38,7 +38,7 @@
     try{await load('app-sales-documents-wording-fix.js?v=20260912-1549');}
     catch(e){console.error('Gagal memuatkan pembetulan label Dokumen Jualan.',e);}
 
-    try{await load('app-ai-office.js?v=20260912-1925');}
+    try{await load('app-ai-office.js?v=20260912-1945');}
     catch(e){console.error('Gagal memuatkan modul AI Office.',e);}
 
     init();
