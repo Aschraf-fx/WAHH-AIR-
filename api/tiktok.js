@@ -120,23 +120,40 @@ module.exports = async function handler(req, res) {
       const caption = String(req.body?.caption || '').trim();
       const fileSize = Number(req.body?.file_size || 0);
       const fileType = String(req.body?.file_type || '').toLowerCase();
+      const privacyLevel = String(req.body?.privacy_level || '').trim();
+      const allowComment = req.body?.allow_comment === true;
+      const allowDuet = req.body?.allow_duet === true;
+      const allowStitch = req.body?.allow_stitch === true;
+
       if (!caption) throw new Error('Caption diperlukan.');
       if (caption.length > 2200) throw new Error('Caption terlalu panjang. Maksimum 2200 aksara untuk test ini.');
       if (!Number.isFinite(fileSize) || fileSize <= 0) throw new Error('Saiz video tidak sah.');
       if (fileSize > MAX_TEST_VIDEO_BYTES) throw new Error('Test Post V1 dihadkan kepada video maksimum 64MB.');
       if (!ALLOWED_VIDEO_TYPES.has(fileType)) throw new Error('Format video mesti MP4, MOV atau WebM.');
+      if (!privacyLevel) throw new Error('Pilih privacy TikTok terlebih dahulu.');
 
+      // TikTok requires the latest creator info to be used when rendering and validating
+      // privacy/interactions immediately before Direct Post initialization.
       const creator = await queryCreatorInfo(connection);
       const privacyOptions = Array.isArray(creator.privacy_level_options) ? creator.privacy_level_options : [];
-      if (!privacyOptions.includes('SELF_ONLY')) throw new Error('TikTok tidak membenarkan SELF_ONLY untuk akaun ini sekarang.');
+      if (!privacyOptions.includes(privacyLevel)) throw new Error('Privacy yang dipilih tidak lagi tersedia. Buka semula Test TikTok Post dan cuba lagi.');
+
+      const creatorCommentDisabled = creator.comment_disabled === true;
+      const creatorDuetDisabled = creator.duet_disabled === true;
+      const creatorStitchDisabled = creator.stitch_disabled === true;
+      const privatePost = privacyLevel === 'SELF_ONLY';
+
+      const disableComment = creatorCommentDisabled || !allowComment;
+      const disableDuet = creatorDuetDisabled || privatePost || !allowDuet;
+      const disableStitch = creatorStitchDisabled || privatePost || !allowStitch;
 
       const payload = {
         post_info: {
           title: caption,
-          privacy_level: 'SELF_ONLY',
-          disable_duet: !!creator.duet_disabled,
-          disable_comment: !!creator.comment_disabled,
-          disable_stitch: !!creator.stitch_disabled
+          privacy_level: privacyLevel,
+          disable_duet: disableDuet,
+          disable_comment: disableComment,
+          disable_stitch: disableStitch
         },
         source_info: {
           source: 'FILE_UPLOAD',
@@ -164,7 +181,15 @@ module.exports = async function handler(req, res) {
         post_id: post.id,
         action: 'tiktok_test_init',
         status: 'initialized',
-        provider_response: { publish_id: init.publish_id, privacy_level: 'SELF_ONLY', file_size: fileSize, file_type: fileType }
+        provider_response: {
+          publish_id: init.publish_id,
+          privacy_level: privacyLevel,
+          allow_comment: !disableComment,
+          allow_duet: !disableDuet,
+          allow_stitch: !disableStitch,
+          file_size: fileSize,
+          file_type: fileType
+        }
       });
 
       return send(res, 200, {
@@ -172,7 +197,7 @@ module.exports = async function handler(req, res) {
         post_id: post.id,
         publish_id: init.publish_id,
         upload_url: init.upload_url,
-        privacy_level: 'SELF_ONLY'
+        privacy_level: privacyLevel
       });
     }
 
