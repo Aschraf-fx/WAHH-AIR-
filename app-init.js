@@ -9,6 +9,13 @@
     });
   }
 
+  if(!document.querySelector('link[href^="sales-documents.css"]')){
+    const l=document.createElement('link');
+    l.rel='stylesheet';
+    l.href='sales-documents.css?v=20260912-1545';
+    document.head.appendChild(l);
+  }
+
   (async()=>{
     try{await load('app-admin-events.js?v=20260912-1437');}
     catch(e){console.error('Gagal memuatkan modul Pengurusan Event.',e);}
