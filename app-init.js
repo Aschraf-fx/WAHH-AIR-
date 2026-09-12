@@ -15,6 +15,12 @@
     l.href='sales-documents.css?v=20260912-1545';
     document.head.appendChild(l);
   }
+  if(!document.querySelector('link[href^="ai-office.css"]')){
+    const l=document.createElement('link');
+    l.rel='stylesheet';
+    l.href='ai-office.css?v=20260912-1825';
+    document.head.appendChild(l);
+  }
 
   (async()=>{
     try{await load('app-admin-events.js?v=20260912-1437');}
@@ -31,6 +37,9 @@
 
     try{await load('app-sales-documents-wording-fix.js?v=20260912-1549');}
     catch(e){console.error('Gagal memuatkan pembetulan label Dokumen Jualan.',e);}
+
+    try{await load('app-ai-office.js?v=20260912-1825');}
+    catch(e){console.error('Gagal memuatkan modul AI Office.',e);}
 
     init();
   })();
