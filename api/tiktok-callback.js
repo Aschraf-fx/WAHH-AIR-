@@ -2,6 +2,11 @@ const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 
 function esc(v = '') { return String(v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c])); }
+function getRedirectUri() {
+  const raw = String(process.env.TIKTOK_REDIRECT_URI || '').trim();
+  if (!raw) return '';
+  return raw.replace('/api/tiktok/callback', '/api/tiktok-callback');
+}
 function verifyState(state) {
   const secret = process.env.TIKTOK_STATE_SECRET || process.env.TIKTOK_CLIENT_SECRET;
   if (!secret || !state || !state.includes('.')) throw new Error('OAuth state tidak sah.');
@@ -14,7 +19,7 @@ function verifyState(state) {
   return payload;
 }
 function page(res, ok, message) {
-  const origin = (() => { try { return new URL(process.env.TIKTOK_REDIRECT_URI).origin; } catch { return 'https://www.wahhair.com'; } })();
+  const origin = (() => { try { return new URL(getRedirectUri()).origin; } catch { return 'https://www.wahhair.com'; } })();
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
   return res.status(ok ? 200 : 400).send(`<!doctype html><html><head><meta charset="utf-8"><title>TikTok Connection</title></head><body style="font-family:Arial,sans-serif;padding:32px"><h2>${ok ? 'TikTok berjaya disambungkan' : 'TikTok connection gagal'}</h2><p>${esc(message)}</p><p>Window ini boleh ditutup.</p><script>try{window.opener&&window.opener.postMessage({type:'wahh-tiktok-oauth',ok:${ok ? 'true' : 'false'},message:${JSON.stringify(String(message))}},${JSON.stringify(origin)});}catch(e){}setTimeout(()=>window.close(),800);</script></body></html>`);
@@ -30,7 +35,7 @@ module.exports = async function handler(req, res) {
 
     const clientKey = process.env.TIKTOK_CLIENT_KEY;
     const clientSecret = process.env.TIKTOK_CLIENT_SECRET;
-    const redirectUri = process.env.TIKTOK_REDIRECT_URI;
+    const redirectUri = getRedirectUri();
     const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!clientKey || !clientSecret || !redirectUri) throw new Error('TikTok environment variables belum lengkap.');
