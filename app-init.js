@@ -41,6 +41,9 @@
     try{await load('app-ai-office.js?v=20260912-1945');}
     catch(e){console.error('Gagal memuatkan modul AI Office.',e);}
 
+    try{await load('app-tiktok-test-post.js?v=20260912-2035');}
+    catch(e){console.error('Gagal memuatkan modul TikTok Test Post.',e);}
+
     init();
   })();
 })();
