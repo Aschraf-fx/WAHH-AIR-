@@ -1,6 +1,6 @@
 (function(){
   const statusLabel={standby:'STANDBY',queued:'QUEUED',working:'WORKING',waiting_approval:'WAITING APPROVAL',completed:'COMPLETED',failed:'FAILED',cancelled:'CANCELLED'};
-  const icon={chief:'🧠',marketing:'📣',accounting:'📊'};
+  const icon={chief:'🧠',marketing:'📣',accounting:'📊',social_media:'📱'};
   const oldBuildMenu=window.buildMenu;
   window.buildMenu=function(){
     oldBuildMenu();
@@ -25,18 +25,18 @@
 
   async function renderAiOffice(root){
     const o=await overview(),agents=o.agents||[],tasks=o.recent_tasks||[],usage=o.month_usage||{};
-    root.innerHTML=pageHead('ADMIN • AI OFFICE','WAHH AIR AI Staff','Owner → Chief AI → Marketing / Accounting. Agent hanya bekerja bila ada task.')+`
+    root.innerHTML=pageHead('ADMIN • AI OFFICE','WAHH AIR AI Staff','Owner → Chief AI → Marketing / Accounting / Social Media Handler. Agent hanya bekerja bila ada task.')+`
       <section class="ai-office-command panel">
         <div class="panel-head"><div><h3>Owner Command</h3><p>Beri arahan kepada Chief atau terus kepada department tertentu.</p></div></div>
         <form id="aiCommandForm" class="form-stack">
-          <label>Hantar kepada<select id="aiTarget"><option value="chief">Chief AI</option><option value="marketing">Marketing AI</option><option value="accounting">Accounting AI</option></select></label>
-          <label>Arahan<textarea id="aiInstruction" rows="4" placeholder="Contoh: Chief, buat kempen wedding untuk bulan ini." required></textarea></label>
+          <label>Hantar kepada<select id="aiTarget"><option value="chief">Chief AI</option><option value="marketing">Marketing AI</option><option value="accounting">Accounting AI</option><option value="social_media">Social Media Handler AI</option></select></label>
+          <label>Arahan<textarea id="aiInstruction" rows="4" placeholder="Contoh: Chief, buat kempen wedding dan sediakan posting Facebook untuk esok malam." required></textarea></label>
           <div class="row-actions"><button class="btn primary" type="submit">Hantar Task</button><button class="btn ghost" id="aiRefresh" type="button">Refresh</button></div>
         </form>
       </section>
       <div class="kpi-grid">${kpi('Active Projects',num(o.active_projects))}${kpi('Tasks in Queue',num(o.queued))}${kpi('Needs Your Attention',num(o.waiting_approval))}${kpi('Agents at Work',num(o.working))}${kpi('Completed Today',num(o.completed_today))}${kpi('AI Usage Bulan Ini',`${num(Number(usage.input_tokens||0)+Number(usage.output_tokens||0))} token`,`${moneyCny(usage.estimated_cost)} reported/estimated`)}</div>
       <section class="panel"><div class="panel-head"><div><h3>AI Staff</h3><p>Model boleh ditukar tanpa ubah logic agent. API key kekal server-side.</p></div></div><div class="ai-agent-grid">${agents.map(agentCard).join('')}</div></section>
-      <section class="panel"><div class="panel-head"><div><h3>Task History</h3><p>Task gagal tidak hilang. Marketing output menunggu approval owner.</p></div></div>${taskTable(tasks)}</section>`;
+      <section class="panel"><div class="panel-head"><div><h3>Task History</h3><p>Task gagal tidak hilang. Marketing dan Social Media output menunggu approval owner.</p></div></div>${taskTable(tasks)}</section>`;
 
     $('#aiCommandForm',root).addEventListener('submit',async e=>{e.preventDefault();const b=e.submitter;setBusy(b,true,'AI sedang bekerja...');try{const r=await callApi({action:'command',agent:$('#aiTarget',root).value,instruction:$('#aiInstruction',root).value.trim()});toast('Task selesai diproses.','success');if(r.result)showResultModal(r);await renderAiOffice(root);}catch(err){toast(err.message,'error');await renderAiOffice(root);}finally{setBusy(b,false);}});
     $('#aiRefresh',root).onclick=()=>renderAiOffice(root);
