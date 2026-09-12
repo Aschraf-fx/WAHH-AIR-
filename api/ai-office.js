@@ -66,7 +66,7 @@ async function main(req,res){
 
     if(requested!=='chief'){
       const task=await createTask(service,user.id,requested,instruction,null,0);
-      const result=await executeAgent({service,authClient,task,code:requested,instruction,userId:user.id});
+      const result=await executeAgent({service,authClient,task,code:requested,instruction,ownerInstruction:instruction,userId:user.id});
       return json(res,200,{ok:true,task_id:task.id,agent:requested,...result});
     }
 
@@ -78,7 +78,7 @@ async function main(req,res){
       const chief=await getAgent(service,'chief');
       const model=chief.model_name||envModel('chief');
       const routeCall=await callRootsys({model,messages:[
-        {role:'system',content:`You are CHIEF AI for WAHH AIR. Route owner instructions only. Return strict JSON only: {"route":"marketing|accounting|both|chief","reason":"short reason","marketing_task":"... or null","accounting_task":"... or null","chief_answer":"... or null"}. Do not invent business facts. Do not call unrelated staff. For marketing content use marketing. For financial numbers/accounting use accounting. For mixed requests use both. For simple management/general AI-office questions use chief.`},
+        {role:'system',content:`You are CHIEF AI for WAHH AIR. Route owner instructions only. Return strict JSON only: {"route":"marketing|accounting|both|chief","reason":"short reason","marketing_task":"... or null","accounting_task":"... or null","chief_answer":"... or null"}. Do not invent business facts. Do not call unrelated staff. For marketing content use marketing. For financial numbers/accounting use accounting. For mixed requests use both. For simple management/general AI-office questions use chief. Preserve concrete facts, prices, quantities, dates, campaign terms and other task parameters explicitly supplied by the OWNER when delegating. Do not silently replace owner-provided campaign parameters with database defaults.`},
         {role:'user',content:instruction}
       ],temperature:0.1,max_tokens:700});
       await recordUsage(service,chiefTask.id,chief.id,'rootsys',model,routeCall.usage);
@@ -97,13 +97,13 @@ async function main(req,res){
       if(route.route==='marketing'||route.route==='both'){
         const childInstruction=cleanText(route.marketing_task||instruction,8000);
         const t=await createTask(service,user.id,'marketing',childInstruction,chiefTask.id,1);
-        const r=await executeAgent({service,authClient,task:t,code:'marketing',instruction:childInstruction,userId:user.id});
+        const r=await executeAgent({service,authClient,task:t,code:'marketing',instruction:childInstruction,ownerInstruction:instruction,userId:user.id});
         children.push({task_id:t.id,agent:'marketing',result:r.result,status:r.status});
       }
       if(route.route==='accounting'||route.route==='both'){
         const childInstruction=cleanText(route.accounting_task||instruction,8000);
         const t=await createTask(service,user.id,'accounting',childInstruction,chiefTask.id,1);
-        const r=await executeAgent({service,authClient,task:t,code:'accounting',instruction:childInstruction,userId:user.id});
+        const r=await executeAgent({service,authClient,task:t,code:'accounting',instruction:childInstruction,ownerInstruction:instruction,userId:user.id});
         children.push({task_id:t.id,agent:'accounting',result:r.result,status:r.status});
       }
       const summary=children.map(x=>`${x.agent.toUpperCase()}: ${x.result}`).join('\n\n');
@@ -134,23 +134,37 @@ async function createTask(service,userId,code,instruction,parentId,depth){
   await log(service,data.id,agent.id,userId,'task_created',{agent:code,parent_task_id:parentId||null});
   return data;
 }
-async function executeAgent({service,authClient,task,code,instruction,userId}){
+async function executeAgent({service,authClient,task,code,instruction,ownerInstruction=instruction,userId}){
   const agent=await getAgent(service,code),model=agent.model_name||envModel(code);
   await service.from('ai_tasks').update({status:'working',started_at:new Date().toISOString()}).eq('id',task.id);
   await setAgentStatus(service,code,'working');
   await log(service,task.id,agent.id,null,'task_started',{agent:code});
   try{
-    let system,context='';
+    let system,context='',userMessage=instruction;
     if(code==='marketing'){
       context=await marketingContext(service);
-      system=`You are Marketing AI for WAHH AIR. Produce useful marketing work in Malay unless asked otherwise. You MUST use only business facts supplied in APPROVED BUSINESS CONTEXT for products, prices, contact details and promotions. Never invent missing prices/promotions/facts. If information is missing, say what is missing. Do not publish anything automatically. Output is a draft for owner approval.\n\nAPPROVED BUSINESS CONTEXT:\n${context}`;
+      system=`You are Marketing AI for WAHH AIR. Produce useful marketing work in Malay unless asked otherwise.
+
+TRUST AND DRAFTING RULES:
+1. The authenticated OWNER's current instruction is authoritative for this task. Concrete prices, quantities, dates, campaign terms, event details, target audiences and offer details explicitly supplied by the OWNER may be used as task-specific facts in the draft, even when they are absent from APPROVED BUSINESS CONTEXT or differ from standard/default database pricing.
+2. APPROVED BUSINESS CONTEXT is authoritative for business facts that the OWNER did not explicitly override or supply in the current task.
+3. Do NOT interpret an owner-supplied campaign price or quantity as a permanent database change. It is authorized for this draft/task only unless a separate approved system action changes business records.
+4. Never invent a price, promotion, event detail, contact detail or term that is absent from both the OWNER instruction and APPROVED BUSINESS CONTEXT.
+5. Do not reject a drafting request merely because an owner-provided campaign parameter is not found in approved_knowledge.
+6. Do not demand event name, date, venue, organiser, stock-limit terms, platform or other fields unless they are genuinely necessary to fulfil the specific request. If they are optional, produce a useful generic draft without inventing them.
+7. Nothing is published automatically. Your output is always a draft and remains WAITING FOR OWNER APPROVAL before publication.
+8. If OWNER instruction and delegated task differ, preserve the OWNER's explicit facts and use the delegated task only to define the work to perform.
+
+APPROVED BUSINESS CONTEXT:
+${context}`;
+      userMessage=`OWNER INSTRUCTION (authoritative task parameters):\n${cleanText(ownerInstruction,8000)}\n\nDELEGATED / ASSIGNED MARKETING TASK:\n${cleanText(instruction,8000)}\n\nCreate the requested marketing draft now. Use owner-supplied facts as authorized draft parameters. Do not publish it.`;
     }else if(code==='accounting'){
       context=await accountingContext(authClient);
       system=`You are Accounting AI for WAHH AIR. You are READ-ONLY. Financial figures below were calculated by deterministic backend functions. Explain/analyse them; do not replace them with your own arithmetic or invent figures. Clearly distinguish billed amounts from payments where relevant.\n\nBACKEND FINANCIAL CONTEXT:\n${context}`;
     }else{
       system='You are Chief AI for WAHH AIR. Give concise management assistance. Do not invent business facts.';
     }
-    const out=await callRootsys({model,messages:[{role:'system',content:system},{role:'user',content:instruction}],temperature:code==='marketing'?0.6:0.2,max_tokens:2200});
+    const out=await callRootsys({model,messages:[{role:'system',content:system},{role:'user',content:userMessage}],temperature:code==='marketing'?0.6:0.2,max_tokens:2200});
     await recordUsage(service,task.id,agent.id,'rootsys',model,out.usage);
     const needsApproval=code==='marketing';
     await service.from('ai_outputs').insert({task_id:task.id,output_type:'text',title:`${agent.display_name} Output`,content_text:out.content,content_json:{context_type:code}});
