@@ -124,6 +124,10 @@ module.exports = async function handler(req, res) {
       const allowComment = req.body?.allow_comment === true;
       const allowDuet = req.body?.allow_duet === true;
       const allowStitch = req.body?.allow_stitch === true;
+      const commercialContent = req.body?.commercial_content === true;
+      const brandOrganic = req.body?.brand_organic === true;
+      const brandContent = req.body?.brand_content === true;
+      const musicUsageConfirmed = req.body?.music_usage_confirmed === true;
 
       if (!caption) throw new Error('Caption diperlukan.');
       if (caption.length > 2200) throw new Error('Caption terlalu panjang. Maksimum 2200 aksara untuk test ini.');
@@ -131,9 +135,10 @@ module.exports = async function handler(req, res) {
       if (fileSize > MAX_TEST_VIDEO_BYTES) throw new Error('Test Post V1 dihadkan kepada video maksimum 64MB.');
       if (!ALLOWED_VIDEO_TYPES.has(fileType)) throw new Error('Format video mesti MP4, MOV atau WebM.');
       if (!privacyLevel) throw new Error('Pilih privacy TikTok terlebih dahulu.');
+      if (!musicUsageConfirmed) throw new Error("Sahkan TikTok Music Usage Confirmation sebelum post.");
+      if (commercialContent && !brandOrganic && !brandContent) throw new Error('Pilih sekurang-kurangnya Your Brand atau Branded Content untuk kandungan promosi.');
+      if (!commercialContent && (brandOrganic || brandContent)) throw new Error('Commercial Content mesti diaktifkan untuk pilihan brand.');
 
-      // TikTok requires the latest creator info to be used when rendering and validating
-      // privacy/interactions immediately before Direct Post initialization.
       const creator = await queryCreatorInfo(connection);
       const privacyOptions = Array.isArray(creator.privacy_level_options) ? creator.privacy_level_options : [];
       if (!privacyOptions.includes(privacyLevel)) throw new Error('Privacy yang dipilih tidak lagi tersedia. Buka semula Test TikTok Post dan cuba lagi.');
@@ -153,7 +158,9 @@ module.exports = async function handler(req, res) {
           privacy_level: privacyLevel,
           disable_duet: disableDuet,
           disable_comment: disableComment,
-          disable_stitch: disableStitch
+          disable_stitch: disableStitch,
+          brand_content_toggle: commercialContent && brandContent,
+          brand_organic_toggle: commercialContent && brandOrganic
         },
         source_info: {
           source: 'FILE_UPLOAD',
@@ -187,6 +194,10 @@ module.exports = async function handler(req, res) {
           allow_comment: !disableComment,
           allow_duet: !disableDuet,
           allow_stitch: !disableStitch,
+          commercial_content: commercialContent,
+          brand_organic_toggle: commercialContent && brandOrganic,
+          brand_content_toggle: commercialContent && brandContent,
+          music_usage_confirmed: musicUsageConfirmed,
           file_size: fileSize,
           file_type: fileType
         }
