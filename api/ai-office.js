@@ -62,7 +62,7 @@ async function main(req,res){
     const instruction=cleanText(req.body?.instruction,8000);
     if(!instruction) return json(res,400,{error:'Arahan diperlukan'});
     const requested=String(req.body?.agent||'chief').toLowerCase();
-    if(!['chief','marketing','accounting'].includes(requested)) return json(res,400,{error:'Agent tidak sah'});
+    if(!['chief','marketing','accounting','social_media'].includes(requested)) return json(res,400,{error:'Agent tidak sah'});
 
     if(requested!=='chief'){
       const task=await createTask(service,user.id,requested,instruction,null,0);
@@ -78,12 +78,12 @@ async function main(req,res){
       const chief=await getAgent(service,'chief');
       const model=chief.model_name||envModel('chief');
       const routeCall=await callRootsys({model,messages:[
-        {role:'system',content:`You are CHIEF AI for WAHH AIR. Route owner instructions only. Return strict JSON only: {"route":"marketing|accounting|both|chief","reason":"short reason","marketing_task":"... or null","accounting_task":"... or null","chief_answer":"... or null"}. Do not invent business facts. Do not call unrelated staff. For marketing content use marketing. For financial numbers/accounting use accounting. For mixed requests use both. For simple management/general AI-office questions use chief. Preserve concrete facts, prices, quantities, dates, campaign terms and other task parameters explicitly supplied by the OWNER when delegating. Do not silently replace owner-provided campaign parameters with database defaults.`},
+        {role:'system',content:`You are CHIEF AI for WAHH AIR. Route owner instructions only. Return strict JSON only: {"route":"marketing|accounting|social_media|marketing_social|both|chief","reason":"short reason","marketing_task":"... or null","accounting_task":"... or null","social_media_task":"... or null","chief_answer":"... or null"}. Use marketing for strategy/copy/offer ideation. Use social_media for preparing/scheduling/managing social-media posts, captions per platform, posting plans, approved posters/videos/assets, or publication workflow. Use marketing_social when both content creation and social execution are requested. Use accounting for financial analysis. Use both only for marketing + accounting requests. Do not invent business facts. Do not call unrelated staff. Preserve concrete facts, prices, quantities, dates, campaign terms and other task parameters explicitly supplied by the OWNER when delegating. Social Media Handler must never claim content is published unless a real connector confirms it.`},
         {role:'user',content:instruction}
-      ],temperature:0.1,max_tokens:700});
+      ],temperature:0.1,max_tokens:900});
       await recordUsage(service,chiefTask.id,chief.id,'rootsys',model,routeCall.usage);
       const route=extractJson(routeCall.content);
-      if(!route||!['marketing','accounting','both','chief'].includes(route.route)) throw new Error('Chief AI memulangkan routing response yang tidak sah.');
+      if(!route||!['marketing','accounting','social_media','marketing_social','both','chief'].includes(route.route)) throw new Error('Chief AI memulangkan routing response yang tidak sah.');
       await log(service,chiefTask.id,chief.id,null,'chief_routed',route);
 
       if(route.route==='chief'){
@@ -94,7 +94,7 @@ async function main(req,res){
       }
 
       const children=[];
-      if(route.route==='marketing'||route.route==='both'){
+      if(['marketing','both','marketing_social'].includes(route.route)){
         const childInstruction=cleanText(route.marketing_task||instruction,8000);
         const t=await createTask(service,user.id,'marketing',childInstruction,chiefTask.id,1);
         const r=await executeAgent({service,authClient,task:t,code:'marketing',instruction:childInstruction,ownerInstruction:instruction,userId:user.id});
@@ -105,6 +105,12 @@ async function main(req,res){
         const t=await createTask(service,user.id,'accounting',childInstruction,chiefTask.id,1);
         const r=await executeAgent({service,authClient,task:t,code:'accounting',instruction:childInstruction,ownerInstruction:instruction,userId:user.id});
         children.push({task_id:t.id,agent:'accounting',result:r.result,status:r.status});
+      }
+      if(route.route==='social_media'||route.route==='marketing_social'){
+        const childInstruction=cleanText(route.social_media_task||instruction,8000);
+        const t=await createTask(service,user.id,'social_media',childInstruction,chiefTask.id,1);
+        const r=await executeAgent({service,authClient,task:t,code:'social_media',instruction:childInstruction,ownerInstruction:instruction,userId:user.id});
+        children.push({task_id:t.id,agent:'social_media',result:r.result,status:r.status});
       }
       const summary=children.map(x=>`${x.agent.toUpperCase()}: ${x.result}`).join('\n\n');
       await finishTask(service,chiefTask.id,summary,{route,children:children.map(x=>({task_id:x.task_id,agent:x.agent,status:x.status}))},false);
@@ -122,14 +128,15 @@ async function main(req,res){
 }
 async function getAgent(service,code){
   const {data,error}=await service.from('ai_agents').select('*').eq('code',code).single();
-  if(error||!data) throw new Error(`AI agent ${code} belum disediakan. Jalankan migration 18.`);
+  if(error||!data) throw new Error(`AI agent ${code} belum disediakan. Pastikan migration AI Office terkini sudah dijalankan.`);
   if(!data.enabled) throw new Error(`${data.display_name} sedang dimatikan.`);
   return data;
 }
 async function createTask(service,userId,code,instruction,parentId,depth){
   const agent=await getAgent(service,code);
   if(depth>Number(agent.max_delegation_depth||2)) throw new Error('Had delegation task telah dicapai.');
-  const {data,error}=await service.from('ai_tasks').insert({created_by:userId,assigned_agent_id:agent.id,parent_task_id:parentId||null,original_instruction:instruction,task_description:instruction,status:'queued',approval_required:code==='marketing',approval_status:code==='marketing'?'pending':'not_required',delegation_depth:depth}).select('*').single();
+  const needsApproval=code==='marketing'||code==='social_media';
+  const {data,error}=await service.from('ai_tasks').insert({created_by:userId,assigned_agent_id:agent.id,parent_task_id:parentId||null,original_instruction:instruction,task_description:instruction,status:'queued',approval_required:needsApproval,approval_status:needsApproval?'pending':'not_required',delegation_depth:depth}).select('*').single();
   if(error) throw error;
   await log(service,data.id,agent.id,userId,'task_created',{agent:code,parent_task_id:parentId||null});
   return data;
@@ -151,22 +158,37 @@ TRUST AND DRAFTING RULES:
 3. Do NOT interpret an owner-supplied campaign price or quantity as a permanent database change. It is authorized for this draft/task only unless a separate approved system action changes business records.
 4. Never invent a price, promotion, event detail, contact detail or term that is absent from both the OWNER instruction and APPROVED BUSINESS CONTEXT.
 5. Do not reject a drafting request merely because an owner-provided campaign parameter is not found in approved_knowledge.
-6. Do not demand event name, date, venue, organiser, stock-limit terms, platform or other fields unless they are genuinely necessary to fulfil the specific request. If they are optional, produce a useful generic draft without inventing them.
+6. Do not demand optional event fields unless genuinely necessary.
 7. Nothing is published automatically. Your output is always a draft and remains WAITING FOR OWNER APPROVAL before publication.
-8. If OWNER instruction and delegated task differ, preserve the OWNER's explicit facts and use the delegated task only to define the work to perform.
+8. If OWNER instruction and delegated task differ, preserve the OWNER's explicit facts.
 
-APPROVED BUSINESS CONTEXT:
-${context}`;
-      userMessage=`OWNER INSTRUCTION (authoritative task parameters):\n${cleanText(ownerInstruction,8000)}\n\nDELEGATED / ASSIGNED MARKETING TASK:\n${cleanText(instruction,8000)}\n\nCreate the requested marketing draft now. Use owner-supplied facts as authorized draft parameters. Do not publish it.`;
+APPROVED BUSINESS CONTEXT:\n${context}`;
+      userMessage=`OWNER INSTRUCTION (authoritative task parameters):\n${cleanText(ownerInstruction,8000)}\n\nDELEGATED / ASSIGNED MARKETING TASK:\n${cleanText(instruction,8000)}\n\nCreate the requested marketing draft now. Do not publish it.`;
+    }else if(code==='social_media'){
+      context=await socialMediaContext(service);
+      system=`You are Social Media Handler AI for WAHH AIR. Your job is social execution, not inventing new business offers. Prepare platform-ready posts, posting plans, scheduling suggestions, captions, hashtag suggestions, asset usage notes, and publication checklists using OWNER instructions and approved materials.
+
+RULES:
+1. OWNER instruction is authoritative for task-specific platform, date/time, campaign terms and requested posting actions.
+2. Use APPROVED MARKETING OUTPUTS and APPROVED BUSINESS CONTEXT when available. Do not invent prices/promotions/business claims.
+3. You may adapt copy for Facebook, Instagram, TikTok, Telegram or other requested platforms, but keep the approved business meaning intact.
+4. You may reference poster/video/image assets supplied or approved by owner, but do not claim an asset exists unless present in context or explicitly supplied by owner.
+5. You cannot actually publish yet unless a real social connector/tool confirms success. Never say a post was published, scheduled on-platform, or uploaded when no connector result exists.
+6. Every output is a posting draft/plan and must remain WAITING FOR OWNER APPROVAL before any future real publication.
+7. If owner asks to publish now but no connector exists, prepare the exact ready-to-publish package and clearly state that external publication is pending connector setup.
+
+SOCIAL MEDIA CONTEXT:\n${context}`;
+      userMessage=`OWNER INSTRUCTION:\n${cleanText(ownerInstruction,8000)}\n\nASSIGNED SOCIAL MEDIA TASK:\n${cleanText(instruction,8000)}\n\nPrepare the social-media execution draft/package now. Do not claim it has been published.`;
     }else if(code==='accounting'){
       context=await accountingContext(authClient);
       system=`You are Accounting AI for WAHH AIR. You are READ-ONLY. Financial figures below were calculated by deterministic backend functions. Explain/analyse them; do not replace them with your own arithmetic or invent figures. Clearly distinguish billed amounts from payments where relevant.\n\nBACKEND FINANCIAL CONTEXT:\n${context}`;
     }else{
       system='You are Chief AI for WAHH AIR. Give concise management assistance. Do not invent business facts.';
     }
-    const out=await callRootsys({model,messages:[{role:'system',content:system},{role:'user',content:userMessage}],temperature:code==='marketing'?0.6:0.2,max_tokens:2200});
+    const temp=code==='marketing'?0.6:code==='social_media'?0.5:0.2;
+    const out=await callRootsys({model,messages:[{role:'system',content:system},{role:'user',content:userMessage}],temperature:temp,max_tokens:2200});
     await recordUsage(service,task.id,agent.id,'rootsys',model,out.usage);
-    const needsApproval=code==='marketing';
+    const needsApproval=code==='marketing'||code==='social_media';
     await service.from('ai_outputs').insert({task_id:task.id,output_type:'text',title:`${agent.display_name} Output`,content_text:out.content,content_json:{context_type:code}});
     await finishTask(service,task.id,out.content,{agent:code},needsApproval);
     await setAgentStatus(service,code,needsApproval?'waiting_approval':'standby');
@@ -183,6 +205,15 @@ async function marketingContext(service){
     service.from('business_knowledge').select('category,title,content').eq('approved',true).order('updated_at',{ascending:false}).limit(30)
   ]);
   return JSON.stringify({products:flavours||[],approved_knowledge:knowledge||[]},null,2).slice(0,18000);
+}
+async function socialMediaContext(service){
+  const [{data:flavours},{data:knowledge},{data:approvedMarketing},{data:accounts}]=await Promise.all([
+    service.from('flavours').select('name,selling_price,active').eq('active',true).order('name'),
+    service.from('business_knowledge').select('category,title,content').eq('approved',true).order('updated_at',{ascending:false}).limit(20),
+    service.from('ai_tasks').select('id,result_summary,completed_at,ai_agents!inner(code)').eq('ai_agents.code','marketing').eq('approval_status','approved').order('completed_at',{ascending:false}).limit(10),
+    service.from('social_accounts').select('platform,account_name,active').eq('active',true).limit(20)
+  ]);
+  return JSON.stringify({products:flavours||[],approved_knowledge:knowledge||[],approved_marketing_outputs:approvedMarketing||[],connected_social_accounts:accounts||[]},null,2).slice(0,22000);
 }
 async function accountingContext(authClient){
   const d=new Date(),start=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`,end=d.toISOString().slice(0,10);
