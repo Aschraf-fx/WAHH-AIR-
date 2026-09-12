@@ -1,35 +1,27 @@
 (function(){
-  const eventScript=document.createElement('script');
-  eventScript.src='app-admin-events.js?v=20260912-1437';
+  function load(src){
+    return new Promise((resolve,reject)=>{
+      const s=document.createElement('script');
+      s.src=src;
+      s.onload=resolve;
+      s.onerror=reject;
+      document.head.appendChild(s);
+    });
+  }
 
-  eventScript.onload=()=>{
-    const ledgerScript=document.createElement('script');
-    ledgerScript.src='app-event-commission-ledger.js?v=20260912-1455';
-    ledgerScript.onload=()=>{
-      const financeScript=document.createElement('script');
-      financeScript.src='app-event-finance-fix.js?v=20260912-1510';
-      financeScript.onload=()=>init();
-      financeScript.onerror=()=>{
-        console.error('Gagal memuatkan pembetulan kewangan Event.');
-        init();
-      };
-      document.head.appendChild(financeScript);
-    };
-    ledgerScript.onerror=()=>{
-      console.error('Gagal memuatkan table Komisen Event / PIC Event.');
-      const financeScript=document.createElement('script');
-      financeScript.src='app-event-finance-fix.js?v=20260912-1510';
-      financeScript.onload=()=>init();
-      financeScript.onerror=()=>init();
-      document.head.appendChild(financeScript);
-    };
-    document.head.appendChild(ledgerScript);
-  };
+  (async()=>{
+    try{await load('app-admin-events.js?v=20260912-1437');}
+    catch(e){console.error('Gagal memuatkan modul Pengurusan Event.',e);}
 
-  eventScript.onerror=()=>{
-    console.error('Gagal memuatkan modul Pengurusan Event.');
+    try{await load('app-event-commission-ledger.js?v=20260912-1455');}
+    catch(e){console.error('Gagal memuatkan table Komisen Event / PIC Event.',e);}
+
+    try{await load('app-event-finance-fix.js?v=20260912-1510');}
+    catch(e){console.error('Gagal memuatkan pembetulan kewangan Event.',e);}
+
+    try{await load('app-sales-documents.js?v=20260912-1545');}
+    catch(e){console.error('Gagal memuatkan modul Dokumen Jualan.',e);}
+
     init();
-  };
-
-  document.head.appendChild(eventScript);
+  })();
 })();
