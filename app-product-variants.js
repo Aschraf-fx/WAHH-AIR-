@@ -74,6 +74,15 @@
     const stockPanel=[...root.querySelectorAll('section.panel')].find(s=>s.querySelector('h3')?.textContent?.includes('Penggunaan Stok Untuk Event'));
     if(stockPanel) stockPanel.insertAdjacentElement('beforebegin',section); else root.appendChild(section);
 
+    if(stockPanel){
+      $$('.stock-remove',stockPanel).forEach(b=>{
+        if((b.closest('tr')?.textContent||'').includes('Auto: recipe Product 100ml')){
+          b.disabled=true;
+          b.title='Stok auto-recipe diurus melalui Product Mix / Sync Recipe.';
+        }
+      });
+    }
+
     $('#eventVariantMixForm',section).addEventListener('submit',async e=>{
       e.preventDefault();
       const lines=$$('.event-variant-line',section).map(line=>({variant_id:line.dataset.variant,quantity:Number($('.event-variant-qty',line).value||0)})).filter(x=>x.quantity>0);
