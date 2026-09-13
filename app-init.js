@@ -38,6 +38,9 @@
     try{await load('app-event-finance-fix.js?v=20260912-1510');}
     catch(e){console.error('Gagal memuatkan pembetulan kewangan Event.',e);}
 
+    try{await load('app-product-variants.js?v=20260913-1648');}
+    catch(e){console.error('Gagal memuatkan Product Variant 100ml / Event Recipe.',e);}
+
     try{await load('app-sales-documents.js?v=20260912-1545');}
     catch(e){console.error('Gagal memuatkan modul Dokumen Jualan.',e);}
 
