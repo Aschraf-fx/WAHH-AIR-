@@ -219,7 +219,18 @@ begin
   end loop;
   delete from public.event_material_usages where event_id=p_event_id and usage_source='variant_recipe';
 
-  -- Lock and validate every shared raw material against aggregate requirement.
+  -- Lock all shared materials first, then validate aggregate requirements.
+  perform 1
+  from public.materials m
+  where m.id in (
+    select distinct vr.material_id
+    from public.event_variant_items i
+    join public.variant_recipes vr on vr.variant_id=i.variant_id
+    where i.event_id=p_event_id
+  )
+  order by m.id
+  for update;
+
   for r in
     select m.id material_id,m.name,m.unit,m.current_qty,m.avg_unit_cost,
       sum(i.quantity*vr.qty_required)::numeric need_qty
@@ -229,7 +240,6 @@ begin
     where i.event_id=p_event_id
     group by m.id,m.name,m.unit,m.current_qty,m.avg_unit_cost
     order by m.id
-    for update of m
   loop
     if r.current_qty<r.need_qty then raise exception 'Stok % tidak cukup. Perlu % %, ada % %',r.name,r.need_qty,r.unit,r.current_qty,r.unit; end if;
   end loop;
