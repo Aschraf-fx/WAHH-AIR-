@@ -4,12 +4,64 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0a1f52" />
-  <title>WAHH AIR! — Air Minuman Berperisa</title>
+  <title>WAHH AIR! — Air Minuman Berperisa untuk Event, Wedding & Majlis</title>
+  <meta name="description" content="WAHH AIR menyediakan air minuman berperisa dalam botol untuk event, wedding dan pelbagai majlis. Tempahan minimum 200 botol serta peluang Rider dan Ejen." />
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+  <link rel="canonical" href="https://www.wahhair.com/" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="ms_MY" />
+  <meta property="og:site_name" content="WAHH AIR!" />
+  <meta property="og:title" content="WAHH AIR! — Air Minuman Berperisa untuk Event, Wedding & Majlis" />
+  <meta property="og:description" content="Tempahan air minuman berperisa WAHH AIR untuk event, wedding dan pelbagai majlis. Minimum 200 botol." />
+  <meta property="og:url" content="https://www.wahhair.com/" />
+  <meta property="og:image" content="https://www.wahhair.com/assets/logo.jpg" />
+  <meta property="og:image:alt" content="Logo rasmi WAHH AIR" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="WAHH AIR! — Air Minuman Berperisa" />
+  <meta name="twitter:description" content="Air minuman berperisa untuk event, wedding dan majlis. Tempahan minimum 200 botol." />
+  <meta name="twitter:image" content="https://www.wahhair.com/assets/logo.jpg" />
+
   <link rel="icon" href="assets/logo.jpg" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="mobile.css" />
   <link rel="stylesheet" href="recruitment.css" />
   <link rel="stylesheet" href="event-supply.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://www.wahhair.com/#website",
+        "url": "https://www.wahhair.com/",
+        "name": "WAHH AIR!",
+        "inLanguage": "ms-MY"
+      },
+      {
+        "@type": "LocalBusiness",
+        "@id": "https://www.wahhair.com/#business",
+        "name": "WAHH AIR!",
+        "url": "https://www.wahhair.com/",
+        "logo": "https://www.wahhair.com/assets/logo.jpg",
+        "image": "https://www.wahhair.com/assets/logo.jpg",
+        "description": "WAHH AIR menyediakan air minuman berperisa dalam botol untuk event, wedding dan pelbagai majlis.",
+        "areaServed": {
+          "@type": "AdministrativeArea",
+          "name": "Negeri Sembilan"
+        },
+        "priceRange": "RM3.30-RM4.00",
+        "knowsAbout": [
+          "Air minuman berperisa",
+          "Tempahan minuman event",
+          "Tempahan minuman wedding",
+          "Tempahan minuman majlis"
+        ]
+      }
+    ]
+  }
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -17,7 +69,7 @@
 
   <header class="topbar">
     <a class="brand" href="#" data-nav="home" aria-label="WAHH AIR Home">
-      <img src="assets/logo.jpg" alt="WAHH AIR logo" />
+      <img src="assets/logo.jpg" alt="Logo rasmi WAHH AIR, air minuman berperisa" />
       <div>
         <strong>WAHH AIR!</strong>
         <span>Air Minuman Berperisa</span>
@@ -39,14 +91,14 @@
         <div class="hero-copy">
           <span class="eyebrow">ANAK JATI NISMILAN • PRODUK MUSLIM</span>
           <h1>WAHH AIR!<br><span>Air sedap, warna meriah, urus niaga kemas.</span></h1>
-          <p>Portal rasmi WAHH AIR untuk paparan promosi serta pengurusan operasi dalaman.</p>
+          <p>WAHH AIR menyediakan air minuman berperisa dalam botol untuk event, wedding dan pelbagai majlis, di samping portal rasmi pengurusan Rider dan Ejen.</p>
           <div class="hero-actions">
             <button class="btn primary large" data-open="loginModal">Masuk Portal</button>
             <button class="btn soft large" data-open="registerModal">Daftar Rider / Ejen</button>
           </div>
         </div>
         <div class="hero-logo-card">
-          <img src="assets/logo.jpg" alt="WAHH AIR" />
+          <img src="assets/logo.jpg" alt="WAHH AIR air minuman berperisa" />
         </div>
       </section>
 
@@ -60,7 +112,7 @@
         </div>
         <div id="posterGrid" class="poster-grid">
           <article class="poster-placeholder">
-            <img src="assets/logo.jpg" alt="WAHH AIR poster placeholder" />
+            <img src="assets/logo.jpg" alt="Poster promosi WAHH AIR" />
             <div><strong>WAHH AIR!</strong><span>Promosi akan dipaparkan di sini.</span></div>
           </article>
         </div>
@@ -69,7 +121,7 @@
       <section class="shell event-supply" aria-labelledby="eventSupplyTitle">
         <a id="eventSupplyPoster" class="event-supply-card" href="#" aria-label="Tempah WAHH AIR untuk majlis melalui WhatsApp">
           <div class="event-supply-poster-slot" aria-label="Ruangan poster Event / Wedding WAHH AIR 1920x1080">
-            <img id="eventSupplyPosterImage" class="event-supply-poster-image" alt="Poster WAHH AIR untuk majlis" hidden />
+            <img id="eventSupplyPosterImage" class="event-supply-poster-image" alt="Poster tempahan WAHH AIR untuk event, wedding dan majlis" hidden />
             <div id="eventSupplyPosterPlaceholder" class="event-supply-poster-placeholder">
               <strong>Ruangan Poster Event / Wedding</strong>
               <span>Format landscape 1920 × 1080 • Satu poster pada satu-satu masa</span>
