@@ -1,5 +1,5 @@
 (function(){
-  const VIDEO_SRC='assets/promo-sidebar.mp4';
+  const STATIC_FALLBACK='assets/promo-sidebar.mp4';
   const WA_MESSAGE='Hi Admin WAHH AIR! Saya nampak video promosi di website dan nak tahu lebih lanjut.';
 
   function normalizeWhatsAppNumber(raw=''){
@@ -10,7 +10,28 @@
     return digits;
   }
 
-  function buildAd(){
+  async function getPublicClient(){
+    const res=await fetch('/api/config',{cache:'no-store'});
+    if(!res.ok)throw new Error('Config tidak tersedia');
+    const cfg=await res.json();
+    if(!cfg.supabaseUrl||!cfg.supabaseAnonKey||!window.supabase)throw new Error('Supabase config tidak lengkap');
+    return window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:false,autoRefreshToken:false}});
+  }
+
+  async function resolveVideoSource(client){
+    try{
+      const {data,error}=await client.from('promo_videos').select('storage_path,title').eq('active',true).order('created_at',{ascending:false}).limit(1).maybeSingle();
+      if(error)throw error;
+      if(!data?.storage_path)return {src:STATIC_FALLBACK,title:'WAHH AIR! untuk event & majlis',managed:false};
+      const url=client.storage.from('promo-videos').getPublicUrl(data.storage_path).data.publicUrl;
+      return {src:url,title:data.title||'WAHH AIR! untuk event & majlis',managed:true};
+    }catch(err){
+      console.warn('Managed promo video unavailable, using static fallback:',err);
+      return {src:STATIC_FALLBACK,title:'WAHH AIR! untuk event & majlis',managed:false};
+    }
+  }
+
+  function buildAd(videoInfo){
     const publicApp=document.getElementById('publicApp');
     if(!publicApp||document.getElementById('promoVideoAd'))return null;
 
@@ -23,7 +44,7 @@
       <button class="promo-video-ad__close" type="button" aria-label="Tutup iklan">×</button>
       <a class="promo-video-ad__link" id="promoVideoLink" href="#" aria-label="Hubungi WAHH AIR melalui WhatsApp">
         <div class="promo-video-ad__media">
-          <video id="promoVideoPlayer" src="${VIDEO_SRC}" autoplay muted loop playsinline preload="metadata" poster="assets/logo.jpg"></video>
+          <video id="promoVideoPlayer" src="${videoInfo.src}" autoplay muted loop playsinline preload="metadata" poster="assets/logo.jpg"></video>
           <div class="promo-video-ad__fallback" aria-hidden="true">
             <div>
               <img src="assets/logo.jpg" alt="" />
@@ -33,7 +54,7 @@
           </div>
         </div>
         <div class="promo-video-ad__cta">
-          <strong>WAHH AIR! untuk event & majlis</strong>
+          <strong>${String(videoInfo.title||'WAHH AIR! untuk event & majlis').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}</strong>
           <span>Tekan untuk tanya harga atau tempahan.</span>
           <b>💬 WhatsApp Kami</b>
         </div>
@@ -57,16 +78,11 @@
     return aside;
   }
 
-  async function attachWhatsApp(aside){
+  async function attachWhatsApp(aside,client){
     if(!aside)return;
     const link=aside.querySelector('#promoVideoLink');
     if(!link)return;
     try{
-      const res=await fetch('/api/config',{cache:'no-store'});
-      if(!res.ok)throw new Error('Config tidak tersedia');
-      const cfg=await res.json();
-      if(!cfg.supabaseUrl||!cfg.supabaseAnonKey||!window.supabase)throw new Error('Supabase config tidak lengkap');
-      const client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:false,autoRefreshToken:false}});
       const {data,error}=await client.rpc('get_public_admin_contact');
       if(error)throw error;
       const row=Array.isArray(data)?data[0]:data;
@@ -81,9 +97,16 @@
     }
   }
 
-  function initPromoVideo(){
-    const aside=buildAd();
-    attachWhatsApp(aside);
+  async function initPromoVideo(){
+    try{
+      const client=await getPublicClient();
+      const videoInfo=await resolveVideoSource(client);
+      const aside=buildAd(videoInfo);
+      await attachWhatsApp(aside,client);
+    }catch(err){
+      console.warn('Promo video init fallback:',err);
+      buildAd({src:STATIC_FALLBACK,title:'WAHH AIR! untuk event & majlis',managed:false});
+    }
   }
 
   if(document.readyState==='loading'){
