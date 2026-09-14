@@ -81,8 +81,14 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded',()=>{
+  function initPromoVideo(){
     const aside=buildAd();
     attachWhatsApp(aside);
-  });
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',initPromoVideo,{once:true});
+  }else{
+    initPromoVideo();
+  }
 })();
