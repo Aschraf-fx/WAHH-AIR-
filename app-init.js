@@ -62,7 +62,10 @@
     try{await load('app-tiktok-post-history.js?v=20260912-2115');}
     catch(e){console.error('Gagal memuatkan TikTok Post History.',e);}
 
-    try{await load('app-promo-video.js?v=20260914-1144');}
+    try{await load('app-promo-admin.js?v=20260914-2350');}
+    catch(e){console.error('Gagal memuatkan pengurusan video promosi Admin.',e);}
+
+    try{await load('app-promo-video.js?v=20260914-2350');}
     catch(e){console.error('Gagal memuatkan video promosi sidebar.',e);}
 
     init();
