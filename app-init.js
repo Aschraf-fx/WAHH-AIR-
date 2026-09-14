@@ -27,6 +27,12 @@
     l.href='tiktok-post-history.css?v=20260912-2115';
     document.head.appendChild(l);
   }
+  if(!document.querySelector('link[href^="promo-video.css"]')){
+    const l=document.createElement('link');
+    l.rel='stylesheet';
+    l.href='promo-video.css?v=20260914-1144';
+    document.head.appendChild(l);
+  }
 
   (async()=>{
     try{await load('app-admin-events.js?v=20260912-1437');}
@@ -55,6 +61,9 @@
 
     try{await load('app-tiktok-post-history.js?v=20260912-2115');}
     catch(e){console.error('Gagal memuatkan TikTok Post History.',e);}
+
+    try{await load('app-promo-video.js?v=20260914-1144');}
+    catch(e){console.error('Gagal memuatkan video promosi sidebar.',e);}
 
     init();
   })();
