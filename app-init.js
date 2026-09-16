@@ -68,6 +68,9 @@
     try{await load('app-promo-video.js?v=20260914-2350');}
     catch(e){console.error('Gagal memuatkan video promosi sidebar.',e);}
 
+    try{await load('app-sidebar-menu.js?v=20260916-1150');}
+    catch(e){console.error('Gagal memuatkan menu sidebar tersusun.',e);}
+
     init();
   })();
 })();
