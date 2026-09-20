@@ -77,7 +77,7 @@
     try{await load('app-sidebar-menu.js?v=20260916-1150');}
     catch(e){console.error('Gagal memuatkan menu sidebar tersusun.',e);}
 
-    try{await load('app-inventory-redesign.js?v=20260921-0105');}
+    try{await load('app-inventory-redesign.js?v=20260921-0215');}
     catch(e){console.error('Gagal memuatkan Inventory workspace.',e);}
 
     init();
