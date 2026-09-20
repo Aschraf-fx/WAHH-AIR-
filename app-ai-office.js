@@ -11,6 +11,7 @@
     }
   };
   const previousRenderAdmin=window.renderAdmin;
+  if(typeof previousRenderAdmin!=='function') return;
   window.renderAdmin=async function(view,root){
     if(view==='ai-office')return renderAiOffice(root);
     return previousRenderAdmin(view,root);
