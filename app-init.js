@@ -41,19 +41,19 @@
   }
 
   (async()=>{
-    try{await load('app-event-finance-fix.js?v=20260912-1510');}
+    try{await load('app-event-finance-fix.js?v=20260921-0145');}
     catch(e){console.error('Gagal memuatkan pembetulan kewangan Event.',e);}
 
     try{await load('app-product-variants.js?v=20260913-1648');}
     catch(e){console.error('Gagal memuatkan Product Variant 100ml / Event Recipe.',e);}
 
-    try{await load('app-sales-documents.js?v=20260912-1545');}
+    try{await load('app-sales-documents.js?v=20260921-0145');}
     catch(e){console.error('Gagal memuatkan modul Dokumen Jualan.',e);}
 
-    try{await load('app-sales-documents-wording-fix.js?v=20260912-1549');}
+    try{await load('app-sales-documents-wording-fix.js?v=20260921-0145');}
     catch(e){console.error('Gagal memuatkan pembetulan label Dokumen Jualan.',e);}
 
-    try{await load('app-ai-office.js?v=20260912-1945');}
+    try{await load('app-ai-office.js?v=20260921-0145');}
     catch(e){console.error('Gagal memuatkan modul AI Office.',e);}
 
     try{await load('app-tiktok-test-post.js?v=20260912-2105');}
