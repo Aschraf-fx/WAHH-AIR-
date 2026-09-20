@@ -23,12 +23,59 @@ async function adminStock(root){
   const flOpts=(flavours||[]).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');
   root.innerHTML=pageHead('INVENTORY','Stok Air','HQ stock, production, allocation Rider/Ejen dan correction semuanya direkod dalam stock movement.')+`<section class="panel"><div class="panel-head"><div><h3>Hasilkan Stok Air</h3><p>Production akan consume bahan ikut Recipe dan tambah stok siap ke HQ.</p></div></div><form id="produceForm" class="inline-form"><div class="field"><label>Perisa</label><select id="prodFlavour">${flOpts}</select></div><div class="field"><label>Qty Siap</label><input id="prodQty" type="number" min="1" required placeholder="cth 50"></div><div class="field"><label>Nota</label><input id="prodReason" value="Production"></div><button class="btn primary" type="submit">Produce</button></form></section>
   <section class="panel"><div class="panel-head"><div><h3>Stock Correction HQ</h3><p>Untuk stok siap dibeli dari luar, kiraan awal atau correction. Nilai positif tambah, negatif tolak.</p></div></div><form id="hqStockForm" class="inline-form"><div class="field"><label>Perisa</label><select id="hqFlavour">${flOpts}</select></div><div class="field"><label>Perubahan Qty</label><input id="hqQty" type="number" required placeholder="cth 10 / -5"></div><div class="field"><label>Sebab</label><input id="hqReason" required placeholder="Stock count correction"></div><button class="btn ghost" type="submit">Update HQ</button></form></section>
-  <section class="panel"><div class="panel-head"><div><h3>Allocate Stock</h3><p>Pindahkan stok HQ kepada Rider/Ejen.</p></div></div><form id="allocateForm" class="inline-form"><div class="field"><label>Rider/Ejen</label><select id="allocMember">${userOpts}</select></div><div class="field"><label>Perisa</label><select id="allocFlavour">${flOpts}</select></div><div class="field"><label>Qty</label><input id="allocQty" type="number" min="1" required></div><button class="btn primary" type="submit">Allocate</button></form></section>
+  <section class="panel"><div class="panel-head"><div><h3>Allocate Stock</h3><p>Pilih Rider/Ejen sekali, tambah semua flavour yang hendak diagihkan, kemudian Allocate sekali.</p></div></div>
+    <form id="allocateForm" class="form-stack">
+      <label>Rider/Ejen<select id="allocMember" required><option value="">Pilih Rider / Ejen...</option>${userOpts}</select></label>
+      <div id="allocRows" style="display:grid;gap:10px"></div>
+      <div class="row-actions" style="justify-content:flex-start;margin-top:4px">
+        <button class="btn ghost" id="addAllocFlavour" type="button">＋ Tambah Flavour</button>
+      </div>
+      <div class="row-actions">
+        <button class="btn primary" type="submit">Allocate Semua</button>
+      </div>
+    </form>
+  </section>
   <section class="panel"><div class="panel-head"><div><h3>Return Stock</h3><p>Pulangkan baki stok Rider/Ejen ke HQ, contohnya sebelum akaun ditamatkan.</p></div></div><form id="returnForm" class="inline-form"><div class="field"><label>Rider/Ejen</label><select id="returnMember">${userOpts}</select></div><div class="field"><label>Perisa</label><select id="returnFlavour">${flOpts}</select></div><div class="field"><label>Qty</label><input id="returnQty" type="number" min="1" required></div><button class="btn ghost" type="submit">Return ke HQ</button></form></section>
   <section class="panel"><div class="panel-head"><div><h3>Current Stock</h3><p>HQ + semua lokasi Rider/Ejen.</p></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Lokasi</th><th>Nama</th><th>Perisa</th><th class="num">Qty</th></tr></thead><tbody>${stock?.length?stock.map(r=>`<tr><td><strong>${esc(r.location_code)}</strong></td><td>${esc(r.location_name)}</td><td>${esc(r.flavour_name)}</td><td class="num">${num(r.quantity)}</td></tr>`).join(''):tableEmpty(4)}</tbody></table></div></section>`;
   $('#produceForm',root).addEventListener('submit',async e=>{e.preventDefault();const b=e.submitter;setBusy(b,true,'Producing...');const{error}=await state.supabase.rpc('admin_produce_stock',{p_flavour_id:$('#prodFlavour').value,p_quantity:Number($('#prodQty').value),p_reason:$('#prodReason').value.trim()||'Production'});setBusy(b,false);if(error)return toast(error.message,'error');toast('Production siap. Bahan ditolak dan stok HQ ditambah.','success');renderView('stock');});
   $('#hqStockForm',root).addEventListener('submit',async e=>{e.preventDefault();const b=e.submitter;setBusy(b,true);const{error}=await state.supabase.rpc('admin_adjust_hq_stock',{p_flavour_id:$('#hqFlavour').value,p_quantity_change:Number($('#hqQty').value),p_reason:$('#hqReason').value.trim()});setBusy(b,false);if(error)return toast(error.message,'error');toast('Stok HQ dikemas kini.','success');renderView('stock');});
-  $('#allocateForm',root).addEventListener('submit',async e=>{e.preventDefault();const b=e.submitter;setBusy(b,true);const{error}=await state.supabase.rpc('admin_allocate_stock',{p_public_id:$('#allocMember').value,p_flavour_id:$('#allocFlavour').value,p_quantity:Number($('#allocQty').value)});setBusy(b,false);if(error)return toast(error.message,'error');toast('Stock berjaya dialokasikan.','success');renderView('stock');});
+  const flavourRows=${JSON.stringify(flavours||[])};
+  const allocRows=$('#allocRows',root);
+  const allocOptions=(selected='')=>flavourRows.map(x=>`<option value="${x.id}" ${String(x.id)===String(selected)?'selected':''}>${esc(x.name)}</option>`).join('');
+  const addAllocRow=(selected='')=>{
+    if(!flavourRows.length)return toast('Tiada flavour aktif untuk diagihkan.','warning');
+    const row=document.createElement('div');
+    row.className='alloc-stock-row';
+    row.style.cssText='display:grid;grid-template-columns:minmax(0,1fr) 120px auto;gap:10px;align-items:end;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fbfcfe';
+    row.innerHTML=`<div class="field"><label style="display:grid;gap:6px;font-size:.8rem;font-weight:800;color:#344054">Flavour<select class="alloc-flavour" required style="width:100%;border:1px solid #d7dfeb;border-radius:11px;padding:11px 12px;background:#fff">${allocOptions(selected)}</select></label></div><div class="field"><label style="display:grid;gap:6px;font-size:.8rem;font-weight:800;color:#344054">Qty<input class="alloc-qty" type="number" min="1" step="1" required placeholder="10" style="width:100%;border:1px solid #d7dfeb;border-radius:11px;padding:11px 12px"></label></div><button class="btn danger sm alloc-remove" type="button">Buang</button>`;
+    $('.alloc-remove',row).addEventListener('click',()=>{if($('.alloc-stock-row',allocRows).length<=1)return toast('Sekurang-kurangnya satu flavour diperlukan.','warning');row.remove();});
+    allocRows.appendChild(row);
+  };
+  addAllocRow();
+  $('#addAllocFlavour',root).addEventListener('click',()=>{
+    const selected=new Set($('.alloc-flavour',allocRows).map(x=>x.value));
+    const next=flavourRows.find(x=>!selected.has(String(x.id)));
+    if(!next)return toast('Semua flavour aktif sudah ditambah.','warning');
+    addAllocRow(next.id);
+  });
+  $('#allocateForm',root).addEventListener('submit',async e=>{
+    e.preventDefault();
+    const publicId=$('#allocMember',root).value;
+    if(!publicId)return toast('Pilih Rider/Ejen dahulu.','warning');
+    const items=$('.alloc-stock-row',allocRows).map(row=>({flavour_id:$('.alloc-flavour',row).value,quantity:Number($('.alloc-qty',row).value||0)}));
+    if(items.some(x=>!x.flavour_id||!Number.isInteger(x.quantity)||x.quantity<1))return toast('Semak flavour dan kuantiti agihan.','warning');
+    const ids=items.map(x=>x.flavour_id);
+    if(new Set(ids).size!==ids.length)return toast('Flavour yang sama tidak boleh dimasukkan dua kali.','warning');
+    const total=items.reduce((a,x)=>a+x.quantity,0);
+    const ok=await confirmAction('Allocate stok?',`${items.length} flavour • jumlah ${total} botol akan diagihkan kepada ${publicId}.`);
+    if(!ok)return;
+    const b=e.submitter;setBusy(b,true,'Allocating...');
+    const{error}=await state.supabase.rpc('admin_allocate_stock_bulk',{p_public_id:publicId,p_items:items});
+    setBusy(b,false);
+    if(error)return toast(error.message,'error');
+    toast(`Stok berjaya diagihkan: ${items.length} flavour, ${total} botol.`,'success');
+    renderView('stock');
+  });
   $('#returnForm',root).addEventListener('submit',async e=>{e.preventDefault();const b=e.submitter;setBusy(b,true);const{error}=await state.supabase.rpc('admin_return_stock',{p_public_id:$('#returnMember').value,p_flavour_id:$('#returnFlavour').value,p_quantity:Number($('#returnQty').value)});setBusy(b,false);if(error)return toast(error.message,'error');toast('Stok berjaya dipulangkan ke HQ.','success');renderView('stock');});
 }
 
