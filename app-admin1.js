@@ -48,12 +48,12 @@ async function adminStock(root){
     row.className='alloc-stock-row';
     row.style.cssText='display:grid;grid-template-columns:minmax(0,1fr) 120px auto;gap:10px;align-items:end;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fbfcfe';
     row.innerHTML=`<div class="field"><label style="display:grid;gap:6px;font-size:.8rem;font-weight:800;color:#344054">Flavour<select class="alloc-flavour" required style="width:100%;border:1px solid #d7dfeb;border-radius:11px;padding:11px 12px;background:#fff">${allocOptions(selected)}</select></label></div><div class="field"><label style="display:grid;gap:6px;font-size:.8rem;font-weight:800;color:#344054">Qty<input class="alloc-qty" type="number" min="1" step="1" required placeholder="10" style="width:100%;border:1px solid #d7dfeb;border-radius:11px;padding:11px 12px"></label></div><button class="btn danger sm alloc-remove" type="button">Buang</button>`;
-    $('.alloc-remove',row).addEventListener('click',()=>{if($('.alloc-stock-row',allocRows).length<=1)return toast('Sekurang-kurangnya satu flavour diperlukan.','warning');row.remove();});
+    $('.alloc-remove',row).addEventListener('click',()=>{if($$('.alloc-stock-row',allocRows).length<=1)return toast('Sekurang-kurangnya satu flavour diperlukan.','warning');row.remove();});
     allocRows.appendChild(row);
   };
   addAllocRow();
   $('#addAllocFlavour',root).addEventListener('click',()=>{
-    const selected=new Set($('.alloc-flavour',allocRows).map(x=>x.value));
+    const selected=new Set($$('.alloc-flavour',allocRows).map(x=>x.value));
     const next=flavourRows.find(x=>!selected.has(String(x.id)));
     if(!next)return toast('Semua flavour aktif sudah ditambah.','warning');
     addAllocRow(next.id);
@@ -62,7 +62,7 @@ async function adminStock(root){
     e.preventDefault();
     const publicId=$('#allocMember',root).value;
     if(!publicId)return toast('Pilih Rider/Ejen dahulu.','warning');
-    const items=$('.alloc-stock-row',allocRows).map(row=>({flavour_id:$('.alloc-flavour',row).value,quantity:Number($('.alloc-qty',row).value||0)}));
+    const items=$$('.alloc-stock-row',allocRows).map(row=>({flavour_id:$('.alloc-flavour',row).value,quantity:Number($('.alloc-qty',row).value||0)}));
     if(items.some(x=>!x.flavour_id||!Number.isInteger(x.quantity)||x.quantity<1))return toast('Semak flavour dan kuantiti agihan.','warning');
     const ids=items.map(x=>x.flavour_id);
     if(new Set(ids).size!==ids.length)return toast('Flavour yang sama tidak boleh dimasukkan dua kali.','warning');
