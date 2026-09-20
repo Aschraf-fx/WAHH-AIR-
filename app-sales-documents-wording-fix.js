@@ -8,6 +8,7 @@
   }
 
   const previousRenderAdmin=window.renderAdmin;
+  if(typeof previousRenderAdmin!=='function') return;
   window.renderAdmin=async function(view,root){
     const result=await previousRenderAdmin(view,root);
     if(view==='sales-documents') cleanSalesDocumentWording(root);
