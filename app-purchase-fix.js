@@ -26,7 +26,7 @@ async function adminPurchases(root){
         <input id="purEditId" type="hidden" value="">
         <div class="field"><label>Bahan</label><select id="purMat">${materials.map(x=>`<option value="${x.id}">${esc(x.name)} (${esc(x.unit)})</option>`).join('')}</select></div>
         <div class="field"><label>Qty</label><input id="purQty" type="number" min="0.0001" step="0.0001" required></div>
-        <div class="field"><label>Unit Cost RM</label><input id="purCost" type="number" min="0" step="0.0001" required></div>
+        <div class="field"><label>Harga Belian Keseluruhan RM</label><input id="purCost" type="number" min="0" step="0.01" required placeholder="Contoh: 30.00"></div>
         <div class="field"><label>Supplier</label><input id="purSupplier" placeholder="Nama supplier"></div>
         <button class="btn primary" id="purSubmit" type="submit">Rekod Belian</button>
         ${purchaseToolsReady?'<button class="btn ghost hidden" id="purCancelEdit" type="button">Batal Edit</button>':''}
@@ -38,7 +38,7 @@ async function adminPurchases(root){
         <tbody>${rows.length ? rows.map(r=>`<tr>
           <td>${dateMY(r.purchased_at)}</td><td>${esc(r.material_name)}</td><td>${esc(r.supplier||'-')}</td>
           <td class="num">${num(r.quantity,3)} ${esc(r.unit)}</td><td class="num">${money(r.unit_cost)}</td><td class="num">${money(r.total_cost)}</td>
-          ${purchaseToolsReady?`<td><div class="row-actions" style="margin:0;justify-content:flex-start"><button class="btn sm ghost purchase-edit" type="button" data-id="${r.purchase_id}" data-material="${r.material_id}" data-qty="${r.quantity}" data-cost="${r.unit_cost}" data-supplier="${esc(r.supplier||'')}">Edit</button><button class="btn sm danger purchase-delete" type="button" data-id="${r.purchase_id}">Delete</button></div></td>`:''}
+          ${purchaseToolsReady?`<td><div class="row-actions" style="margin:0;justify-content:flex-start"><button class="btn sm ghost purchase-edit" type="button" data-id="${r.purchase_id}" data-material="${r.material_id}" data-qty="${r.quantity}" data-total="${r.total_cost}" data-supplier="${esc(r.supplier||'')}">Edit</button><button class="btn sm danger purchase-delete" type="button" data-id="${r.purchase_id}">Delete</button></div></td>`:''}
         </tr>`).join('') : tableEmpty(purchaseToolsReady?7:6)}</tbody>
       </table></div>
     </section>`;
@@ -56,7 +56,7 @@ async function adminPurchases(root){
       $('#purEditId',root).value=b.dataset.id;
       $('#purMat',root).value=b.dataset.material;
       $('#purQty',root).value=b.dataset.qty;
-      $('#purCost',root).value=b.dataset.cost;
+      $('#purCost',root).value=b.dataset.total;
       $('#purSupplier',root).value=b.dataset.supplier||'';
       $('#purSubmit',root).textContent='Simpan Perubahan';
       $('#purCancelEdit',root).classList.remove('hidden');
@@ -81,19 +81,21 @@ async function adminPurchases(root){
     const b=e.submitter;
     setBusy(b,true);
     const editId=purchaseToolsReady?$('#purEditId',root).value:'';
-    const args={
+    const quantity=Number($('#purQty',root).value);
+    const totalCost=Number($('#purCost',root).value);
+    if(!(quantity>0)||totalCost<0){setBusy(b,false);return toast('Semak quantity dan harga belian.','warning');}
+    const common={
       p_material_id:$('#purMat',root).value,
-      p_quantity:Number($('#purQty',root).value),
-      p_unit_cost:Number($('#purCost',root).value),
+      p_quantity:quantity,
       p_supplier:$('#purSupplier',root).value.trim()||null,
       p_notes:null
     };
     const result=editId
-      ? await state.supabase.rpc('admin_update_material_purchase',{p_purchase_id:editId,...args})
-      : await state.supabase.rpc('admin_record_material_purchase',args);
+      ? await state.supabase.rpc('admin_update_material_purchase',{p_purchase_id:editId,...common,p_unit_cost:totalCost/quantity})
+      : await state.supabase.rpc('admin_record_material_purchase_total',{...common,p_total_cost:totalCost});
     setBusy(b,false);
     if(result.error)return toast(result.error.message,'error');
-    toast(editId?'Belian berjaya dikemas kini dan average cost dilaraskan.':'Belian stok direkod dan average cost dikemas kini.','success');
+    toast(editId?'Belian dikemas kini. Harga per unit dikira automatik daripada jumlah harga.':'Belian direkod. Harga per unit dikira automatik daripada jumlah harga.','success');
     renderView('purchases');
   });
 }
