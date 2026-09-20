@@ -7,6 +7,7 @@
   const sum=(rows,key)=>round2((rows||[]).reduce((a,x)=>a+Number(x[key]||0),0));
 
   const previousRenderAdmin=window.renderAdmin;
+  if(typeof previousRenderAdmin!=='function') return;
   window.renderAdmin=async function(view,root){
     if(view==='sales-documents')return renderSalesDocuments(root);
     if(view==='sales-document-detail')return renderSalesDocumentDetail(root,state.salesDocumentId);
