@@ -36,14 +36,16 @@
   }
 
   async function renderInventory(root){
-    const [{data:stock,error:stockError},{data:members,error:membersError},{data:flavours,error:flavourError}]=await Promise.all([
+    const [{data:stock,error:stockError},{data:members,error:membersError},{data:flavours,error:flavourError},{data:materials,error:materialsError}]=await Promise.all([
       state.supabase.rpc('admin_stock_summary'),
       state.supabase.rpc('admin_list_members'),
-      state.supabase.from('flavours').select('id,name,low_stock_threshold,active').eq('active',true).order('created_at')
+      state.supabase.from('flavours').select('id,name,low_stock_threshold,active').eq('active',true).order('created_at'),
+      state.supabase.from('materials').select('id,name,unit,current_qty,avg_unit_cost,min_qty,active').eq('active',true).order('name')
     ]);
     if(stockError) throw stockError;
     if(membersError) throw membersError;
     if(flavourError) throw flavourError;
+    if(materialsError) throw materialsError;
 
     const activeMembers=(members||[]).filter(x=>x.status==='active');
     const hq=hqRows(stock);
@@ -59,8 +61,9 @@
     const teamTotal=sum(team);
     const lowCount=(flavours||[]).filter(f=>Number(hqMap.get(f.name)?.quantity||0)<=Number(f.low_stock_threshold||0)).length;
     const tabs=[
-      ['overview','Overview'],
-      ['produce','Tambah Stok'],
+      ['overview','Stok Siap'],
+      ['materials','Bahan Mentah'],
+      ['produce','Tambah Stok Siap'],
       ['allocate','Agih Stok'],
       ['return','Pulangkan'],
       ['adjust','Correction']
@@ -94,10 +97,11 @@
       renderInventory(root);
     }));
 
-    renderWorkspace($('#inventoryWorkspace',root),getActiveTab(),{stock,flavours,activeMembers,hqMap,teamByFlavour,hqTotal,teamTotal});
+    renderWorkspace($('#inventoryWorkspace',root),getActiveTab(),{stock,flavours,materials:materials||[],activeMembers,hqMap,teamByFlavour,hqTotal,teamTotal});
   }
 
   function renderWorkspace(host,tab,ctx){
+    if(tab==='materials') return renderMaterials(host,ctx);
     if(tab==='produce') return renderProduce(host,ctx);
     if(tab==='allocate') return renderAllocate(host,ctx);
     if(tab==='return') return renderReturn(host,ctx);
@@ -157,6 +161,98 @@
     };
     renderRows();
     $('#invStockSearch',host).addEventListener('input',renderRows);
+  }
+
+  function renderMaterials(host,{materials}){
+    const rows=(materials||[]).map(m=>`<tr>
+      <td><strong>${esc(m.name)}</strong><div class="muted">${esc(m.unit)}</div></td>
+      <td class="num"><strong>${num(m.current_qty,4)}</strong></td>
+      <td class="num">${money(m.avg_unit_cost)} / ${esc(m.unit)}</td>
+      <td class="num">${money(Number(m.current_qty||0)*Number(m.avg_unit_cost||0))}</td>
+      <td><button class="btn sm ghost inv-material-set" type="button" data-id="${m.id}" data-name="${esc(m.name)}" data-unit="${esc(m.unit)}" data-qty="${m.current_qty}">Edit baki</button></td>
+    </tr>`).join('');
+
+    host.innerHTML=`
+      <section class="inv-section inv-action-section">
+        <div class="inv-section-head">
+          <div><h2>Tambah Bahan Mentah</h2><p>Pilih bahan yang memang sudah wujud. Masukkan berapa banyak dibeli dan jumlah harga resit; sistem kira harga per unit sendiri.</p></div>
+        </div>
+        <form id="invMaterialPurchaseForm" class="inv-form-grid">
+          <label class="inv-span-2">Bahan<select id="invMatId" required>${(materials||[]).map(m=>`<option value="${m.id}" data-unit="${esc(m.unit)}" data-current="${m.current_qty}">${esc(m.name)} — baki ${num(m.current_qty,4)} ${esc(m.unit)}</option>`).join('')}</select></label>
+          <label>Quantity ditambah<input id="invMatQty" type="number" min="0.0001" step="0.0001" inputmode="decimal" required placeholder="Contoh: 560"></label>
+          <label>Harga belian keseluruhan (RM)<input id="invMatTotalCost" type="number" min="0" step="0.01" inputmode="decimal" required placeholder="Contoh: 30.00"></label>
+          <label class="inv-span-2">Supplier<input id="invMatSupplier" maxlength="120" placeholder="Optional"></label>
+          <div class="inv-form-status inv-span-2" id="invMatCalc">Masukkan quantity dan harga belian.</div>
+          <div class="inv-form-actions inv-span-2"><button class="btn primary" type="submit">Tambah Ke Baki Bahan</button></div>
+        </form>
+      </section>
+
+      <section class="inv-section">
+        <div class="inv-section-head"><div><h2>Baki Bahan Semasa</h2><p>Edit baki hanya untuk samakan sistem dengan kiraan fizikal sebenar. Ia tidak merekod pembelian baru.</p></div></div>
+        <div class="table-wrap inv-table-wrap">
+          <table class="data-table inv-table">
+            <thead><tr><th>Bahan</th><th class="num">Baki</th><th class="num">Kos Purata</th><th class="num">Nilai Stok</th><th></th></tr></thead>
+            <tbody>${rows||tableEmpty(5,'Belum ada bahan.')}</tbody>
+          </table>
+        </div>
+      </section>`;
+
+    const calc=()=>{
+      const sel=$('#invMatId',host);
+      const opt=sel.options[sel.selectedIndex];
+      const unit=opt?.dataset.unit||'unit';
+      const current=Number(opt?.dataset.current||0);
+      const qty=Number($('#invMatQty',host).value||0);
+      const total=Number($('#invMatTotalCost',host).value||0);
+      const unitCost=qty>0?total/qty:0;
+      $('#invMatCalc',host).innerHTML=qty>0
+        ? `Baki ${num(current,4)} ${esc(unit)} + ${num(qty,4)} ${esc(unit)} = <strong>${num(current+qty,4)} ${esc(unit)}</strong> • Kos pembelian ini <strong>${money(unitCost)} / ${esc(unit)}</strong>`
+        : 'Masukkan quantity dan harga belian.';
+    };
+    $('#invMatId',host).addEventListener('change',calc);
+    $('#invMatQty',host).addEventListener('input',calc);
+    $('#invMatTotalCost',host).addEventListener('input',calc);
+
+    $('#invMaterialPurchaseForm',host).addEventListener('submit',async e=>{
+      e.preventDefault();
+      const qty=Number($('#invMatQty',host).value||0);
+      const total=Number($('#invMatTotalCost',host).value||0);
+      if(!(qty>0)||total<0) return toast('Semak quantity dan harga belian.','warning');
+      const sel=$('#invMatId',host);
+      const opt=sel.options[sel.selectedIndex];
+      const current=Number(opt?.dataset.current||0);
+      const unit=opt?.dataset.unit||'unit';
+      const ok=await confirmAction('Tambah bahan mentah?',`${opt?.textContent?.split(' — ')[0]||'Bahan'}: ${num(qty,4)} ${unit}, harga resit ${money(total)}. Baki akan jadi ${num(current+qty,4)} ${unit}.`);
+      if(!ok) return;
+      const btn=e.submitter;
+      setBusy(btn,true,'Menambah bahan...');
+      const {error}=await state.supabase.rpc('admin_record_material_purchase_total',{
+        p_material_id:sel.value,
+        p_quantity:qty,
+        p_total_cost:total,
+        p_supplier:$('#invMatSupplier',host).value.trim()||null,
+        p_notes:'Inventory restock'
+      });
+      setBusy(btn,false);
+      if(error) return toast(error.message,'error');
+      toast('Bahan ditambah dan kos per unit dikira automatik.','success');
+      renderView('stock');
+    });
+
+    $('.inv-material-set',host).forEach(btn=>btn.addEventListener('click',async()=>{
+      const next=window.prompt(`Baki sebenar ${btn.dataset.name} (${btn.dataset.unit}):`,btn.dataset.qty);
+      if(next===null) return;
+      const qty=Number(next);
+      if(!Number.isFinite(qty)||qty<0) return toast('Baki stok tidak sah.','warning');
+      const reason=window.prompt('Sebab edit baki stok:','Kiraan stok fizikal');
+      if(reason===null) return;
+      const ok=await confirmAction('Edit baki bahan?',`${btn.dataset.name}: ${num(Number(btn.dataset.qty),4)} → ${num(qty,4)} ${btn.dataset.unit}.`);
+      if(!ok) return;
+      const {error}=await state.supabase.rpc('admin_set_material_quantity',{p_material_id:btn.dataset.id,p_new_quantity:qty,p_reason:reason.trim()||null});
+      if(error) return toast(error.message,'error');
+      toast('Baki bahan dikemas kini.','success');
+      renderView('stock');
+    }));
   }
 
   function flavourOptions(flavours,selected=''){
