@@ -41,12 +41,6 @@
   }
 
   (async()=>{
-    try{await load('app-admin-events.js?v=20260912-1437');}
-    catch(e){console.error('Gagal memuatkan modul Pengurusan Event.',e);}
-
-    try{await load('app-event-commission-ledger.js?v=20260912-1455');}
-    catch(e){console.error('Gagal memuatkan table Komisen Event / PIC Event.',e);}
-
     try{await load('app-event-finance-fix.js?v=20260912-1510');}
     catch(e){console.error('Gagal memuatkan pembetulan kewangan Event.',e);}
 
