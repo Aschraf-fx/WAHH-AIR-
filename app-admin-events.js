@@ -7,9 +7,13 @@
   const isoLocal=v=>{const d=new Date(v),z=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`;};
 
   const oldBuildMenu=window.buildMenu;
-  window.buildMenu=function(){oldBuildMenu();if(state.profile?.role!=='admin')return;const m=$('#sideMenu');if(m&&!m.querySelector('[data-view="events"]')){const b=document.createElement('button');b.dataset.view='events';b.innerHTML='<span>✦</span>Pengurusan Event';m.appendChild(b);}};
+  if(typeof oldBuildMenu==='function'){
+    window.buildMenu=function(){oldBuildMenu();if(state.profile?.role!=='admin')return;const m=$('#sideMenu');if(m&&!m.querySelector('[data-view="events"]')){const b=document.createElement('button');b.dataset.view='events';b.innerHTML='<span>✦</span>Pengurusan Event';m.appendChild(b);}};
+  }
   const oldRenderAdmin=window.renderAdmin;
-  window.renderAdmin=async function(view,root){if(view==='events')return adminEvents(root);if(view==='event-detail')return adminEventDetail(root,state.eventSelectedId);return oldRenderAdmin(view,root);};
+  if(typeof oldRenderAdmin==='function'){
+    window.renderAdmin=async function(view,root){if(view==='events')return adminEvents(root);if(view==='event-detail')return adminEventDetail(root,state.eventSelectedId);return oldRenderAdmin(view,root);};
+  }
 
   async function adminEvents(root){
     const f=state.eventFilters||{},search=f.search||'',start=f.start||'',end=f.end||'',status=f.status||'';
