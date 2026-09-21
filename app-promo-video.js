@@ -1,5 +1,11 @@
 (function(){
-  const STATIC_FALLBACK='assets/promo-sidebar.mp4';
+  /* The ad slot only renders when a managed promo video exists.
+     - No static mp4 fallback: assets/promo-sidebar.mp4 does not exist in the
+       repo (404), so pointing <video> at it left a dead black panel.
+     - No empty placeholder either: if promo_videos has no active row we render
+       nothing at all, so visitors never see a "video will appear here" box.
+     The in-markup CSS panel is kept purely as a runtime fallback for the case
+     where the video URL itself fails to load. */
   const WA_MESSAGE='Hi Admin WAHH AIR! Saya nampak video promosi di website dan nak tahu lebih lanjut.';
 
   function normalizeWhatsAppNumber(raw=''){
@@ -11,6 +17,7 @@
   }
 
   async function getPublicClient(){
+    if(typeof window.getSharedPublicClient==='function')return window.getSharedPublicClient();
     const res=await fetch('/api/config',{cache:'no-store'});
     if(!res.ok)throw new Error('Config tidak tersedia');
     const cfg=await res.json();
@@ -22,29 +29,30 @@
     try{
       const {data,error}=await client.from('promo_videos').select('storage_path,title').eq('active',true).order('created_at',{ascending:false}).limit(1).maybeSingle();
       if(error)throw error;
-      if(!data?.storage_path)return {src:STATIC_FALLBACK,title:'WAHH AIR! untuk event & majlis',managed:false};
+      if(!data?.storage_path)return {src:'',title:'WAHH AIR! untuk event & majlis',managed:false};
       const url=client.storage.from('promo-videos').getPublicUrl(data.storage_path).data.publicUrl;
       return {src:url,title:data.title||'WAHH AIR! untuk event & majlis',managed:true};
     }catch(err){
-      console.warn('Managed promo video unavailable, using static fallback:',err);
-      return {src:STATIC_FALLBACK,title:'WAHH AIR! untuk event & majlis',managed:false};
+      console.warn('Managed promo video unavailable, skipping ad slot:',err);
+      return {src:'',title:'WAHH AIR! untuk event & majlis',managed:false};
     }
   }
 
   function buildAd(videoInfo){
     const publicApp=document.getElementById('publicApp');
     if(!publicApp||document.getElementById('promoVideoAd'))return null;
+    const hasVideo=!!videoInfo.src;
 
     const aside=document.createElement('aside');
     aside.id='promoVideoAd';
-    aside.className='promo-video-ad';
+    aside.className=hasVideo?'promo-video-ad':'promo-video-ad is-fallback';
     aside.setAttribute('aria-label','Iklan promosi WAHH AIR');
     aside.innerHTML=`
       <span class="promo-video-ad__label">Iklan / Promosi</span>
       <button class="promo-video-ad__close" type="button" aria-label="Tutup iklan">×</button>
       <a class="promo-video-ad__link" id="promoVideoLink" href="#" aria-label="Hubungi WAHH AIR melalui WhatsApp">
         <div class="promo-video-ad__media">
-          <video id="promoVideoPlayer" src="${videoInfo.src}" autoplay muted loop playsinline preload="metadata" poster="assets/logo.jpg"></video>
+          ${hasVideo?`<video id="promoVideoPlayer" data-src="${videoInfo.src}" autoplay muted loop playsinline preload="none" poster="assets/logo.jpg"></video>`:''}
           <div class="promo-video-ad__fallback" aria-hidden="true">
             <div>
               <img src="assets/logo.jpg" alt="" />
@@ -72,7 +80,28 @@
     const video=aside.querySelector('#promoVideoPlayer');
     const markFallback=()=>aside.classList.add('is-fallback');
     video?.addEventListener('error',markFallback,{once:true});
-    video?.play().catch(()=>{});
+    if(!video)markFallback();
+
+    /* Load the promo video only when the slot is actually visible. It used to
+       start fetching on page load, which cost 11.6 MB twice (the mp4 has its
+       moov atom at the tail, so the browser issues a range request after the
+       first pass). */
+    const loadVideo=()=>{
+      if(!video||video.dataset.loaded==='1')return;
+      video.dataset.loaded='1';
+      video.src=video.dataset.src||'';
+      video.play().catch(()=>{});
+    };
+    if(video){
+      if('IntersectionObserver' in window){
+        const io=new IntersectionObserver(entries=>{
+          entries.forEach(entry=>{ if(entry.isIntersecting){ loadVideo(); io.disconnect(); } });
+        },{rootMargin:'200px'});
+        io.observe(video);
+      } else {
+        loadVideo();
+      }
+    }
 
     try{if(sessionStorage.getItem('wahhPromoVideoClosed')==='1')aside.hidden=true;}catch(_){ }
     return aside;
@@ -101,11 +130,14 @@
     try{
       const client=await getPublicClient();
       const videoInfo=await resolveVideoSource(client);
+      /* No managed video means no ad slot at all. Rendering the empty fallback
+         panel would advertise "video will appear here" to every visitor, which
+         is worse than showing nothing. */
+      if(!videoInfo.src)return;
       const aside=buildAd(videoInfo);
       await attachWhatsApp(aside,client);
     }catch(err){
-      console.warn('Promo video init fallback:',err);
-      buildAd({src:STATIC_FALLBACK,title:'WAHH AIR! untuk event & majlis',managed:false});
+      console.warn('Promo video unavailable, skipping ad slot:',err);
     }
   }
 

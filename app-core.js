@@ -26,8 +26,46 @@ function toast(message, type = '') {
   toast._t = setTimeout(() => el.className = 'toast', 3400);
 }
 
-function openModal(id) { $(`#${id}`)?.classList.remove('hidden'); }
-function closeModal(id) { $(`#${id}`)?.classList.add('hidden'); }
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+let lastFocused = null;
+
+function openModal(id) {
+  const modal = $(`#${id}`);
+  if (!modal) return;
+  lastFocused = document.activeElement;
+  modal.classList.remove('hidden');
+  const first = $$(FOCUSABLE, modal).find(el => el.offsetParent !== null);
+  (first || modal).focus?.({ preventScroll: true });
+}
+function closeModal(id) {
+  const modal = $(`#${id}`);
+  if (!modal) return;
+  modal.classList.add('hidden');
+  if (lastFocused && document.contains(lastFocused)) lastFocused.focus?.({ preventScroll: true });
+  lastFocused = null;
+}
+function closeTopModal() {
+  const open = $$('.modal').filter(m => !m.classList.contains('hidden'));
+  const top = open[open.length - 1];
+  if (top) { closeModal(top.id); return true; }
+  return false;
+}
+/* Keyboard handling for every dialog: Escape closes, Tab cycles inside the
+   open dialog instead of escaping to the page behind it. */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && closeTopModal()) { e.preventDefault(); return; }
+  if (e.key !== 'Tab') return;
+  const open = $$('.modal').filter(m => !m.classList.contains('hidden'));
+  const modal = open[open.length - 1];
+  if (!modal) return;
+  const items = $$(FOCUSABLE, modal).filter(el => el.offsetParent !== null);
+  if (!items.length) return;
+  const first = items[0], last = items[items.length - 1];
+  if (!modal.contains(document.activeElement)) { e.preventDefault(); first.focus(); return; }
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
+
 function setBusy(btn, busy, text = 'Memproses...') {
   if (!btn) return;
   if (busy) { btn.dataset.oldText = btn.textContent; btn.disabled = true; btn.textContent = text; }
@@ -40,16 +78,38 @@ function confirmAction(title, text) {
   return new Promise(resolve => { state.confirmResolver = resolve; });
 }
 
+/* Single shared Supabase client. Previously app-core, app-event-supply,
+   app-promo-video and the program-* pages each built their own client against
+   the same auth storage key, which logged "Multiple GoTrueClient instances
+   detected" on every homepage load. */
+let publicClientPromise = null;
+function getSharedPublicClient() {
+  if (state.supabase) return Promise.resolve(state.supabase);
+  if (!publicClientPromise) {
+    publicClientPromise = fetch('/api/config', { cache: 'no-store' })
+      .then(res => {
+        if (!res.ok) throw new Error('Config belum disediakan');
+        return res.json();
+      })
+      .then(cfg => {
+        if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) throw new Error('Supabase env belum lengkap');
+        if (!window.supabase) throw new Error('Supabase library belum dimuatkan');
+        state.supabase = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
+          auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+        });
+        return state.supabase;
+      })
+      .catch(err => { publicClientPromise = null; throw err; });
+  }
+  return publicClientPromise;
+}
+window.getSharedPublicClient = getSharedPublicClient;
+
 async function init() {
   bindStaticEvents();
   try {
-    const res = await fetch('/api/config', { cache: 'no-store' });
-    if (!res.ok) throw new Error('Config belum disediakan');
-    const cfg = await res.json();
-    if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) throw new Error('Supabase env belum lengkap');
-    state.supabase = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-    });
+    const client = await getSharedPublicClient();
+    state.supabase = client;
 
     state.supabase.auth.onAuthStateChange(async (event, session) => {
       state.session = session;
@@ -77,9 +137,27 @@ async function init() {
     if (state.session && !state.profile) await enterPortal();
   } catch (e) {
     console.warn(e);
-    $('#publicStockGrid').innerHTML = setupNotice('Supabase belum disambungkan. Isi Environment Variables di Vercel selepas menjalankan schema.sql.');
-    $('#publicMemberGrid').innerHTML = '';
+    setHTML('#publicStockGrid', setupNotice('Supabase belum disambungkan. Isi Environment Variables di Vercel selepas menjalankan schema.sql.'));
+    setHTML('#publicMemberGrid', '');
   }
+}
+
+/* Guarded helpers: the public landing markup may not contain every grid on
+   every page. Writing .innerHTML to a missing node threw a TypeError that
+   aborted the whole init() promise chain, so stock and member lists never
+   rendered. */
+function setHTML(selector, html) {
+  const el = $(selector);
+  if (!el) return false;
+  el.innerHTML = html;
+  return true;
+}
+function posterThumbUrl(publicUrl, width) {
+  const url = String(publicUrl || '');
+  if (!/\.(png|jpe?g)$/i.test(url)) return url;
+  const rendered = url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+  if (rendered === url) return url;
+  return `${rendered}?width=${width}&format=webp&quality=72`;
 }
 
 function bindStaticEvents() {
@@ -105,36 +183,28 @@ function finishConfirm(value) { closeModal('confirmModal'); state.confirmResolve
 function closeMobileMenu() { $('.sidebar')?.classList.remove('open'); }
 function setupNotice(text) { return `<div class="panel empty-state" style="grid-column:1/-1"><strong>Setup diperlukan</strong><br>${esc(text)}</div>`; }
 
-async function loadPublic() {
-  if (!state.supabase) return;
-  const [fl, posters, stock, members] = await Promise.all([
-    state.supabase.from('flavours').select('id,name,selling_price,active').eq('active', true).order('name'),
-    state.supabase.from('posters').select('id,title,storage_path,created_at').eq('active', true).order('sort_order').order('created_at', { ascending:false }),
-    state.supabase.rpc('get_public_flavour_stock'),
-    state.supabase.rpc('get_public_members')
-  ]);
-  state.flavours = fl.data || [];
-  renderPublicPosters(posters.data || []);
-  renderPublicStock(stock.data || []);
-  renderPublicMembers(members.data || []);
-}
+/* NOTE: loadPublic() lives in app-recruitment-posters.js. It is the superset
+   implementation (promo + recruitment + event posters). A second definition
+   here shadowed/raced it depending on script order, so it has been removed. */
 function renderPublicPosters(rows) {
   const grid = $('#posterGrid');
-  if (!rows.length) return;
+  if (!grid || !rows.length) return;
   grid.innerHTML = rows.map(p => {
     const { data } = state.supabase.storage.from('posters').getPublicUrl(p.storage_path);
-    return `<article class="poster-card"><img src="${esc(data.publicUrl)}" alt="${esc(p.title)}"><div class="poster-meta"><strong>${esc(p.title)}</strong><span>WAHH AIR!</span></div></article>`;
+    const full = data.publicUrl;
+    const thumb = posterThumbUrl(full, 760);
+    return `<article class="poster-card"><img src="${esc(thumb)}" data-full="${esc(full)}" loading="lazy" decoding="async" alt="${esc(p.title)}" onerror="this.onerror=null;this.src=this.dataset.full"><div class="poster-meta"><strong>${esc(p.title)}</strong><span>WAHH AIR!</span></div></article>`;
   }).join('');
 }
 function renderPublicStock(rows) {
-  $('#publicStockGrid').innerHTML = rows.length ? rows.map(r => `<article class="stock-card">
+  setHTML('#publicStockGrid', rows.length ? rows.map(r => `<article class="stock-card">
     <h3>${esc(r.flavour_name)}</h3><div class="stock-value">${num(r.quantity)} <small>unit</small></div>
     <div class="stock-sub">${money(r.selling_price)} / unit</div>
     <div class="status-dot ${r.stock_status === 'LIMITED' ? 'limited' : r.stock_status === 'OUT' ? 'out' : ''}">${esc(r.stock_status)}</div>
-  </article>`).join('') : setupNotice('Belum ada stok aktif.');
+  </article>`).join('') : setupNotice('Belum ada stok aktif.'));
 }
 function renderPublicMembers(rows) {
-  $('#publicMemberGrid').innerHTML = rows.length ? rows.map(r => `<article class="member-card"><div><strong>${esc(r.public_id)}</strong><br><span>${r.role === 'agent' ? 'Ejen' : 'Rider'}</span></div><span class="status-badge ${esc(r.status)}">${esc(r.status)}</span></article>`).join('') : `<div class="muted">Belum ada Rider/Ejen aktif.</div>`;
+  setHTML('#publicMemberGrid', rows.length ? rows.map(r => `<article class="member-card"><div><strong>${esc(r.public_id)}</strong><br><span>${r.role === 'agent' ? 'Ejen' : 'Rider'}</span></div><span class="status-badge ${esc(r.status)}">${esc(r.status)}</span></article>`).join('') : `<div class="muted">Belum ada Rider/Ejen aktif.</div>`);
 }
 
 async function login(e) {

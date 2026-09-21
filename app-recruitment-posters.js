@@ -42,7 +42,9 @@ function renderRecruitmentPosters(rows) {
   }
   grid.innerHTML = rows.map(p => {
     const { data } = state.supabase.storage.from('posters').getPublicUrl(p.storage_path);
-    const card = `<article class="poster-card"><img src="${esc(data.publicUrl)}" alt="${esc(p.title)}"><div class="poster-meta"><strong>${esc(p.title)}</strong><span>Jom Jadi Rider / Ejen WAHH AIR</span></div></article>`;
+    const full = data.publicUrl;
+    const thumb = typeof posterThumbUrl === 'function' ? posterThumbUrl(full, 760) : full;
+    const card = `<article class="poster-card"><img src="${esc(thumb)}" data-full="${esc(full)}" loading="lazy" decoding="async" alt="${esc(p.title)}" onerror="this.onerror=null;this.src=this.dataset.full"><div class="poster-meta"><strong>${esc(p.title)}</strong><span>Jom Jadi Rider / Ejen WAHH AIR</span></div></article>`;
     const title = p.title || '';
     const isRider = /rider/i.test(title);
     const isAgent = /ejen|agent/i.test(title);
@@ -64,7 +66,10 @@ function renderEventPoster(rows){
     return;
   }
   const {data}=state.supabase.storage.from('posters').getPublicUrl(p.storage_path);
-  img.src=data.publicUrl;
+  const full=data.publicUrl;
+  img.src=typeof posterThumbUrl === 'function' ? posterThumbUrl(full, 1400) : full;
+  img.dataset.full=full;
+  img.onerror=()=>{ img.onerror=null; img.src=full; };
   img.alt=p.title||'Poster WAHH AIR untuk majlis';
   img.hidden=false;
   placeholder.hidden=true;

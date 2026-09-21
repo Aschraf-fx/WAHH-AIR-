@@ -35,11 +35,16 @@
 
   async function loadAdminContact(){
     try {
-      const res = await fetch('/api/config', { cache:'no-store' });
-      if (!res.ok) throw new Error('Config tidak tersedia');
-      const cfg = await res.json();
-      if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) throw new Error('Supabase config tidak lengkap');
-      const client = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth:{ persistSession:false, autoRefreshToken:false } });
+      let client;
+      if (typeof window.getSharedPublicClient === 'function') {
+        client = await window.getSharedPublicClient();
+      } else {
+        const res = await fetch('/api/config', { cache:'no-store' });
+        if (!res.ok) throw new Error('Config tidak tersedia');
+        const cfg = await res.json();
+        if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) throw new Error('Supabase config tidak lengkap');
+        client = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth:{ persistSession:false, autoRefreshToken:false } });
+      }
       const { data, error } = await client.rpc('get_public_admin_contact');
       if (error) throw error;
       const row = Array.isArray(data) ? data[0] : data;
