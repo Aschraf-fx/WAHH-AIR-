@@ -17,71 +17,56 @@ async function adminMembers(root){
 async function updateMemberStatus(publicId,status){const ok=await confirmAction('Tukar status akaun?',`${publicId} akan ditetapkan sebagai ${status}.`);if(!ok)return;const{error}=await state.supabase.rpc('admin_set_member_status',{p_public_id:publicId,p_status:status});if(error)return toast(error.message,'error');toast('Status dikemas kini.','success');renderView('members');}
 async function deleteMember(publicId){const ok=await confirmAction('Delete akaun?',`Akaun ${publicId} akan dipadam daripada Authentication dan database. Tindakan ini tidak boleh dibatalkan.`);if(!ok)return;const token=state.session.access_token;const res=await fetch('/api/admin-delete-user',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({publicId})});const out=await res.json().catch(()=>({}));if(!res.ok)return toast(out.error||'Delete gagal.','error');toast(`${publicId} telah dipadam.`,'success');renderView('members');}
 
+/* adminStock used to hold its own copy of the whole inventory screen. It has been
+   dead code since app-inventory-redesign.js started replacing renderAdmin for the
+   'stock' view, and keeping two divergent implementations is how the two halves of
+   the screen drifted apart (one accepted absolute balances, the other only deltas).
+   The real screen now lives in app-inventory-redesign.js; this delegates to it so
+   the sidebar item still works if that module is slow to load. */
 async function adminStock(root){
-  const [{data:stock,error},{data:members},{data:flavours}]=await Promise.all([state.supabase.rpc('admin_stock_summary'),state.supabase.rpc('admin_list_members'),state.supabase.from('flavours').select('id,name,active').eq('active',true).order('name')]);if(error)throw error;
-  const userOpts=(members||[]).filter(x=>x.status==='active').map(x=>`<option value="${esc(x.public_id)}">${esc(x.public_id)} — ${esc(x.full_name)}</option>`).join('');
-  const flOpts=(flavours||[]).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');
-  root.innerHTML=pageHead('INVENTORY','Stok Air','HQ stock, production, allocation Rider/Ejen dan correction semuanya direkod dalam stock movement.')+`<section class="panel"><div class="panel-head"><div><h3>Hasilkan Stok Air</h3><p>Production akan consume bahan ikut Recipe dan tambah stok siap ke HQ.</p></div></div><form id="produceForm" class="inline-form"><div class="field"><label>Perisa</label><select id="prodFlavour">${flOpts}</select></div><div class="field"><label>Qty Siap</label><input id="prodQty" type="number" min="1" required placeholder="cth 50"></div><div class="field"><label>Nota</label><input id="prodReason" value="Production"></div><button class="btn primary" type="submit">Produce</button></form></section>
-  <section class="panel"><div class="panel-head"><div><h3>Stock Correction HQ</h3><p>Untuk stok siap dibeli dari luar, kiraan awal atau correction. Nilai positif tambah, negatif tolak.</p></div></div><form id="hqStockForm" class="inline-form"><div class="field"><label>Perisa</label><select id="hqFlavour">${flOpts}</select></div><div class="field"><label>Perubahan Qty</label><input id="hqQty" type="number" required placeholder="cth 10 / -5"></div><div class="field"><label>Sebab</label><input id="hqReason" required placeholder="Stock count correction"></div><button class="btn ghost" type="submit">Update HQ</button></form></section>
-  <section class="panel"><div class="panel-head"><div><h3>Allocate Stock</h3><p>Pilih Rider/Ejen sekali, tambah semua flavour yang hendak diagihkan, kemudian Allocate sekali.</p></div></div>
-    <form id="allocateForm" class="form-stack">
-      <label>Rider/Ejen<select id="allocMember" required><option value="">Pilih Rider / Ejen...</option>${userOpts}</select></label>
-      <div id="allocRows" style="display:grid;gap:10px"></div>
-      <div class="row-actions" style="justify-content:flex-start;margin-top:4px">
-        <button class="btn ghost" id="addAllocFlavour" type="button">＋ Tambah Flavour</button>
-      </div>
-      <div class="row-actions">
-        <button class="btn primary" type="submit">Allocate Semua</button>
-      </div>
-    </form>
-  </section>
-  <section class="panel"><div class="panel-head"><div><h3>Return Stock</h3><p>Pulangkan baki stok Rider/Ejen ke HQ, contohnya sebelum akaun ditamatkan.</p></div></div><form id="returnForm" class="inline-form"><div class="field"><label>Rider/Ejen</label><select id="returnMember">${userOpts}</select></div><div class="field"><label>Perisa</label><select id="returnFlavour">${flOpts}</select></div><div class="field"><label>Qty</label><input id="returnQty" type="number" min="1" required></div><button class="btn ghost" type="submit">Return ke HQ</button></form></section>
-  <section class="panel"><div class="panel-head"><div><h3>Current Stock</h3><p>HQ + semua lokasi Rider/Ejen.</p></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Lokasi</th><th>Nama</th><th>Perisa</th><th class="num">Qty</th></tr></thead><tbody>${stock?.length?stock.map(r=>`<tr><td><strong>${esc(r.location_code)}</strong></td><td>${esc(r.location_name)}</td><td>${esc(r.flavour_name)}</td><td class="num">${num(r.quantity)}</td></tr>`).join(''):tableEmpty(4)}</tbody></table></div></section>`;
-  $('#produceForm',root).addEventListener('submit',async e=>{e.preventDefault();const b=e.submitter;setBusy(b,true,'Producing...');const{error}=await state.supabase.rpc('admin_produce_stock',{p_flavour_id:$('#prodFlavour').value,p_quantity:Number($('#prodQty').value),p_reason:$('#prodReason').value.trim()||'Production'});setBusy(b,false);if(error)return toast(error.message,'error');toast('Production siap. Bahan ditolak dan stok HQ ditambah.','success');renderView('stock');});
-  $('#hqStockForm',root).addEventListener('submit',async e=>{e.preventDefault();const b=e.submitter;setBusy(b,true);const{error}=await state.supabase.rpc('admin_adjust_hq_stock',{p_flavour_id:$('#hqFlavour').value,p_quantity_change:Number($('#hqQty').value),p_reason:$('#hqReason').value.trim()});setBusy(b,false);if(error)return toast(error.message,'error');toast('Stok HQ dikemas kini.','success');renderView('stock');});
-  const flavourRows=flavours||[];
-  const allocRows=$('#allocRows',root);
-  const allocOptions=(selected='')=>flavourRows.map(x=>`<option value="${x.id}" ${String(x.id)===String(selected)?'selected':''}>${esc(x.name)}</option>`).join('');
-  const addAllocRow=(selected='')=>{
-    if(!flavourRows.length)return toast('Tiada flavour aktif untuk diagihkan.','warning');
-    const row=document.createElement('div');
-    row.className='alloc-stock-row';
-    row.style.cssText='display:grid;grid-template-columns:minmax(0,1fr) 120px auto;gap:10px;align-items:end;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fbfcfe';
-    row.innerHTML=`<div class="field"><label style="display:grid;gap:6px;font-size:.8rem;font-weight:800;color:#344054">Flavour<select class="alloc-flavour" required style="width:100%;border:1px solid #d7dfeb;border-radius:11px;padding:11px 12px;background:#fff">${allocOptions(selected)}</select></label></div><div class="field"><label style="display:grid;gap:6px;font-size:.8rem;font-weight:800;color:#344054">Qty<input class="alloc-qty" type="number" min="1" step="1" required placeholder="10" style="width:100%;border:1px solid #d7dfeb;border-radius:11px;padding:11px 12px"></label></div><button class="btn danger sm alloc-remove" type="button">Buang</button>`;
-    $('.alloc-remove',row).addEventListener('click',()=>{if($$('.alloc-stock-row',allocRows).length<=1)return toast('Sekurang-kurangnya satu flavour diperlukan.','warning');row.remove();});
-    allocRows.appendChild(row);
-  };
-  addAllocRow();
-  $('#addAllocFlavour',root).addEventListener('click',()=>{
-    const selected=new Set($$('.alloc-flavour',allocRows).map(x=>x.value));
-    const next=flavourRows.find(x=>!selected.has(String(x.id)));
-    if(!next)return toast('Semua flavour aktif sudah ditambah.','warning');
-    addAllocRow(next.id);
-  });
-  $('#allocateForm',root).addEventListener('submit',async e=>{
-    e.preventDefault();
-    const publicId=$('#allocMember',root).value;
-    if(!publicId)return toast('Pilih Rider/Ejen dahulu.','warning');
-    const items=$$('.alloc-stock-row',allocRows).map(row=>({flavour_id:$('.alloc-flavour',row).value,quantity:Number($('.alloc-qty',row).value||0)}));
-    if(items.some(x=>!x.flavour_id||!Number.isInteger(x.quantity)||x.quantity<1))return toast('Semak flavour dan kuantiti agihan.','warning');
-    const ids=items.map(x=>x.flavour_id);
-    if(new Set(ids).size!==ids.length)return toast('Flavour yang sama tidak boleh dimasukkan dua kali.','warning');
-    const total=items.reduce((a,x)=>a+x.quantity,0);
-    const ok=await confirmAction('Allocate stok?',`${items.length} flavour • jumlah ${total} botol akan diagihkan kepada ${publicId}.`);
-    if(!ok)return;
-    const b=e.submitter;setBusy(b,true,'Allocating...');
-    const{error}=await state.supabase.rpc('admin_allocate_stock_bulk',{p_public_id:publicId,p_items:items});
-    setBusy(b,false);
-    if(error)return toast(error.message,'error');
-    toast(`Stok berjaya diagihkan: ${items.length} flavour, ${total} botol.`,'success');
-    renderView('stock');
-  });
-  $('#returnForm',root).addEventListener('submit',async e=>{e.preventDefault();const b=e.submitter;setBusy(b,true);const{error}=await state.supabase.rpc('admin_return_stock',{p_public_id:$('#returnMember').value,p_flavour_id:$('#returnFlavour').value,p_quantity:Number($('#returnQty').value)});setBusy(b,false);if(error)return toast(error.message,'error');toast('Stok berjaya dipulangkan ke HQ.','success');renderView('stock');});
+  if(typeof window.wahhRenderInventory==='function') return window.wahhRenderInventory(root);
+  return adminDashboard(root);
 }
 
 async function adminFlavours(root){
   const{data,error}=await state.supabase.from('flavours').select('*').order('created_at');if(error)throw error;
-  root.innerHTML=pageHead('PRODUCT','Perisa & Harga','Tambah perisa, harga jual, minimum stok dan manual COGS fallback.')+`<section class="panel"><form id="flavourForm" class="inline-form"><div class="field"><label>Nama Perisa</label><input id="flName" required placeholder="Honeydew"></div><div class="field"><label>Harga Jual RM</label><input id="flPrice" type="number" min="0" step="0.01" required value="5"></div><div class="field"><label>Manual COGS RM</label><input id="flCogs" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Low Stock</label><input id="flLow" type="number" min="0" value="10"></div><button class="btn primary" type="submit">Tambah</button></form></section><section class="panel"><div class="table-wrap"><table class="data-table"><thead><tr><th>Perisa</th><th class="num">Harga</th><th class="num">Manual COGS</th><th class="num">Low Stock</th><th>Status</th></tr></thead><tbody>${data?.length?data.map(r=>`<tr><td><strong>${esc(r.name)}</strong></td><td class="num">${money(r.selling_price)}</td><td class="num">${money(r.manual_unit_cogs)}</td><td class="num">${num(r.low_stock_threshold)}</td><td><button class="btn sm ${r.active?'success':'ghost'} flavour-toggle" data-id="${r.id}" data-active="${!r.active}">${r.active?'Active':'Inactive'}</button></td></tr>`).join(''):tableEmpty(5)}</tbody></table></div></section>`;
+  root.innerHTML=pageHead('PRODUCT','Perisa & Harga','Tambah perisa, harga jual, minimum stok dan manual COGS fallback.')+`<section class="panel"><form id="flavourForm" class="inline-form"><div class="field"><label>Nama Perisa</label><input id="flName" required placeholder="Honeydew"></div><div class="field"><label>Harga Jual RM</label><input id="flPrice" type="number" min="0" step="0.01" required value="5"></div><div class="field"><label>Manual COGS RM</label><input id="flCogs" type="number" min="0" step="0.01" value="0"></div><div class="field"><label>Low Stock</label><input id="flLow" type="number" min="0" value="10"></div><button class="btn primary" type="submit">Tambah</button></form></section><section class="panel"><div class="table-wrap"><table class="data-table"><thead><tr><th>Perisa</th><th class="num">Harga</th><th class="num">Manual COGS</th><th class="num">Low Stock</th><th>Status</th><th>Tindakan</th></tr></thead><tbody>${data?.length?data.map(r=>`<tr><td><strong>${esc(r.name)}</strong></td><td class="num">${money(r.selling_price)}</td><td class="num">${money(r.manual_unit_cogs)}</td><td class="num">${num(r.low_stock_threshold)}</td><td><button class="btn sm ${r.active?'success':'ghost'} flavour-toggle" data-id="${r.id}" data-active="${!r.active}">${r.active?'Active':'Inactive'}</button></td><td class="inv-actions-cell"><button class="btn sm ghost flavour-edit" type="button" data-id="${r.id}" data-name="${esc(r.name)}" data-price="${r.selling_price}" data-cogs="${r.manual_unit_cogs}" data-low="${r.low_stock_threshold}" data-slug="${esc(r.slug)}">Edit</button></td></tr>`).join(''):tableEmpty(5)}</tbody></table></div></section>`;
   $('#flavourForm',root).addEventListener('submit',async e=>{e.preventDefault();const slug=$('#flName').value.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');const{error}=await state.supabase.from('flavours').insert({name:$('#flName').value.trim(),slug,selling_price:Number($('#flPrice').value),manual_unit_cogs:Number($('#flCogs').value),low_stock_threshold:Number($('#flLow').value)});if(error)return toast(error.message,'error');toast('Perisa ditambah.','success');await loadPublic();renderView('flavours');});
   $$('.flavour-toggle',root).forEach(b=>b.addEventListener('click',async()=>{const{error}=await state.supabase.from('flavours').update({active:b.dataset.active==='true'}).eq('id',b.dataset.id);if(error)return toast(error.message,'error');toast('Status perisa dikemas kini.','success');await loadPublic();renderView('flavours');}));
+
+  /* Price, manual COGS and the low-stock threshold used to be create-only: once a
+     flavour existed the only thing you could change was its active flag, so a price
+     change meant editing the database by hand. Now editable inline. */
+  $$('.flavour-edit',root).forEach(b=>b.addEventListener('click',()=>{
+    const d=b.dataset;
+    const open=window.wahhOpenDialog;
+    if(typeof open!=='function') return toast('Dialog tidak tersedia. Muat semula halaman.','error');
+    open({
+      title:`Edit perisa — ${d.name}`,
+      description:'Harga jual dipakai pada jualan baru. Manual COGS ialah kos seunit simpanan bila recipe belum lengkap. Low stock menentukan bila amaran stok keluar.',
+      fields:[
+        {name:'name',label:'Nama perisa',type:'text',required:true,maxlength:120,value:d.name},
+        {name:'price',label:'Harga jual (RM)',type:'number',min:0,step:0.01,inputmode:'decimal',required:true,value:d.price},
+        {name:'cogs',label:'Manual COGS (RM)',type:'number',min:0,step:0.01,inputmode:'decimal',required:true,value:d.cogs},
+        {name:'low',label:'Paras low stock',type:'number',min:0,step:1,inputmode:'numeric',required:true,value:d.low,hint:'Stok HQ pada atau bawah paras ini ditandakan low stock.'}
+      ],
+      submitLabel:'Simpan perubahan',
+      onSubmit:async({read,num})=>{
+        const name=read('name').trim();
+        const price=num('price');
+        const cogs=num('cogs');
+        const low=num('low');
+        if(!name)return toast('Nama perisa diperlukan.','warning'),false;
+        if(!Number.isFinite(price)||price<0)return toast('Harga jual tidak sah.','warning'),false;
+        if(!Number.isFinite(cogs)||cogs<0)return toast('Manual COGS tidak sah.','warning'),false;
+        if(!Number.isInteger(low)||low<0)return toast('Paras low stock tidak sah.','warning'),false;
+        const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+        const{error}=await state.supabase.from('flavours').update({name,slug,selling_price:price,manual_unit_cogs:cogs,low_stock_threshold:low}).eq('id',d.id);
+        if(error){toast(error.message,'error');return false;}
+        toast(`Perisa "${name}" dikemas kini.`,'success');
+        await loadPublic();
+        renderView('flavours');
+      }
+    });
+  }));
 }

@@ -36,7 +36,7 @@
   if(!document.querySelector('link[href^="inventory-redesign.css"]')){
     const l=document.createElement('link');
     l.rel='stylesheet';
-    l.href='inventory-redesign.css?v=20260921-0105';
+    l.href='inventory-redesign.css?v=20260922-1200';
     document.head.appendChild(l);
   }
 
@@ -71,7 +71,7 @@
     try{await load('app-sidebar-menu.js?v=20260916-1150');}
     catch(e){console.error('Gagal memuatkan menu sidebar tersusun.',e);}
 
-    try{await load('app-inventory-redesign.js?v=20260921-0215');}
+    try{await load('app-inventory-redesign.js?v=20260922-1200');}
     catch(e){console.error('Gagal memuatkan Inventory workspace.',e);}
 
     init();

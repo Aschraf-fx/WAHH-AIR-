@@ -276,7 +276,7 @@ async function enterPortal() {
 
 function buildMenu() {
   const admin = [
-    ['dashboard','▦','Dashboard'],['members','♟','Rider / Ejen'],['stock','▣','Stok Air'],['flavours','●','Perisa & Harga'],['materials','◫','Bahan & Costing'],['purchases','🛒','Belian Stok'],['expenses','−','Expenses'],['sales','＋','Jualan'],['invoices','▤','Invoices'],['accounting','◒','Accounting'],['partners','◎','Partner Profit'],['posters','▧','Poster'],['audit','↺','Audit Log']
+    ['dashboard','▦','Dashboard'],['members','♟','Rider / Ejen'],['stock','▣','Inventori & Stok'],['flavours','●','Perisa & Harga'],['materials','◫','Recipe & Costing'],['purchases','🛒','Belian Stok'],['expenses','−','Expenses'],['sales','＋','Jualan'],['invoices','▤','Invoices'],['accounting','◒','Accounting'],['partners','◎','Partner Profit'],['posters','▧','Poster'],['audit','↺','Audit Log']
   ];
   const user = [
     ['dashboard','▦','Dashboard'],['new-sale','＋','Update Jualan'],['history','▤','Sales History'],['my-stock','▣','Stok Saya'],['commission','RM','Upah / Komisen'],['directory','◎','Stok Public'],['profile','♟','Profil']
