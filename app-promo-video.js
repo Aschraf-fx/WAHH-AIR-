@@ -1,8 +1,11 @@
 (function(){
-  /* No static mp4 fallback: assets/promo-sidebar.mp4 does not exist in the repo
-     (404), so pointing the <video> at it left a dead black panel. When no
-     managed video is available we now rely on the built-in CSS fallback panel
-     that already ships inside the ad markup. */
+  /* The ad slot only renders when a managed promo video exists.
+     - No static mp4 fallback: assets/promo-sidebar.mp4 does not exist in the
+       repo (404), so pointing <video> at it left a dead black panel.
+     - No empty placeholder either: if promo_videos has no active row we render
+       nothing at all, so visitors never see a "video will appear here" box.
+     The in-markup CSS panel is kept purely as a runtime fallback for the case
+     where the video URL itself fails to load. */
   const WA_MESSAGE='Hi Admin WAHH AIR! Saya nampak video promosi di website dan nak tahu lebih lanjut.';
 
   function normalizeWhatsAppNumber(raw=''){
@@ -30,7 +33,7 @@
       const url=client.storage.from('promo-videos').getPublicUrl(data.storage_path).data.publicUrl;
       return {src:url,title:data.title||'WAHH AIR! untuk event & majlis',managed:true};
     }catch(err){
-      console.warn('Managed promo video unavailable, using fallback panel:',err);
+      console.warn('Managed promo video unavailable, skipping ad slot:',err);
       return {src:'',title:'WAHH AIR! untuk event & majlis',managed:false};
     }
   }
@@ -127,11 +130,14 @@
     try{
       const client=await getPublicClient();
       const videoInfo=await resolveVideoSource(client);
+      /* No managed video means no ad slot at all. Rendering the empty fallback
+         panel would advertise "video will appear here" to every visitor, which
+         is worse than showing nothing. */
+      if(!videoInfo.src)return;
       const aside=buildAd(videoInfo);
       await attachWhatsApp(aside,client);
     }catch(err){
-      console.warn('Promo video init fallback:',err);
-      buildAd({src:'',title:'WAHH AIR! untuk event & majlis',managed:false});
+      console.warn('Promo video unavailable, skipping ad slot:',err);
     }
   }
 
