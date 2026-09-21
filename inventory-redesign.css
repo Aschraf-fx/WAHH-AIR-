@@ -1,4 +1,9 @@
-.inv-shell{display:grid;gap:16px}
+/* minmax(0,1fr) is load-bearing: with a bare `auto` column the grid item keeps its
+   max-content width, so the 560px-min table stretched the section to 645px inside a
+   370px shell. #portalContent is overflow:hidden, so the row action buttons were
+   clipped with no scrollbar and were unreachable on a phone. */
+.inv-shell{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.inv-shell>*{min-width:0}
 .inv-summary{display:grid;grid-template-columns:minmax(220px,.8fr) 2.2fr;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
 .inv-summary-main{padding:22px;border-right:1px solid var(--line);display:grid;align-content:center;gap:4px}
 .inv-summary-main span,.inv-summary-list dt{font-size:.76rem;color:var(--muted);font-weight:800}
@@ -15,9 +20,9 @@
 .inv-tab:hover{background:rgba(255,255,255,.65);color:var(--navy)}
 .inv-tab.active{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(7,27,73,.08)}
 
-.inv-section{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px}
+.inv-section{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;min-width:0}
 .inv-section+.inv-section{margin-top:14px}
-.inv-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:16px}
+.inv-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:16px;min-width:0;flex-wrap:wrap}
 .inv-section-head h2{font-size:1.15rem;margin:0;color:var(--navy)}
 .inv-section-head p{font-size:.82rem;line-height:1.55;color:var(--muted);margin:5px 0 0;max-width:760px}
 .inv-section-head-tools{align-items:end}
@@ -53,6 +58,55 @@
 .inv-allocation-total strong{font-size:1.1rem;color:var(--navy)}
 .inv-inline-error{min-height:22px;margin-top:8px;color:var(--danger);font-size:.78rem;font-weight:700}
 .inv-correction{border-left:3px solid #d5a14b}
+
+/* ---------- row-level actions ---------- */
+.inv-toolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;min-width:0}
+.inv-actions-cell{white-space:nowrap}
+.inv-row-actions{display:flex;gap:5px;flex-wrap:wrap}
+.inv-row-actions .btn{min-height:34px;padding:6px 10px;font-size:.78rem}
+.inv-row-actions .btn[title]{min-width:34px;justify-content:center;font-size:.95rem;line-height:1}
+
+/* ---------- movement badges ---------- */
+.inv-move{display:inline-flex;align-items:center;min-height:26px;padding:3px 8px;border-radius:7px;font-size:.72rem;font-weight:900}
+.inv-move.in{background:#edf8f2;color:var(--success)}
+.inv-move.out{background:#fff0f1;color:var(--danger)}
+.inv-history-note{margin:10px 2px 0;font-size:.76rem}
+
+/* ---------- dialog ---------- */
+.inv-dialog-card{width:min(560px,100%);max-height:calc(100dvh - 40px);overflow:auto;overscroll-behavior:contain;display:grid;gap:12px}
+.inv-dialog-card h3{margin:0;padding-right:34px;font-size:1.12rem;color:var(--navy)}
+.inv-dialog-desc{margin:0;font-size:.83rem;line-height:1.55}
+.inv-dialog-card form{display:grid;gap:12px;margin:0}
+.inv-dialog-field{display:grid;gap:6px}
+.inv-dialog-label{font-size:.78rem;font-weight:800;color:#344054}
+.inv-dialog-label em{color:var(--danger);font-style:normal}
+.inv-dialog-field input,.inv-dialog-field select,.inv-dialog-field textarea{width:100%;min-width:0;border:1px solid #d7dfeb;border-radius:9px;padding:11px 12px;background:#fff;color:var(--text);outline:none;font:inherit}
+.inv-dialog-field input:focus,.inv-dialog-field select:focus,.inv-dialog-field textarea:focus{border-color:#7ba7e8;box-shadow:0 0 0 3px rgba(45,112,214,.10)}
+.inv-dialog-hint{font-size:.73rem;line-height:1.5;color:var(--muted)}
+.inv-dialog-static{display:grid;gap:5px;padding:10px 12px;border:1px solid #e3e8ef;background:#f8fafc;border-radius:9px;font-size:.82rem;color:#344054}
+.inv-dialog-readout{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.inv-dialog-readout>div{display:grid;gap:4px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#fbfcfe}
+.inv-dialog-readout span{font-size:.72rem;font-weight:800;color:var(--muted)}
+.inv-dialog-readout strong{font-size:1.25rem;color:var(--navy);font-variant-numeric:tabular-nums}
+.inv-up{color:var(--success)!important}
+.inv-down{color:var(--danger)!important}
+.inv-dialog-actions{display:flex;justify-content:flex-end;gap:9px;margin:0}
+.inv-dialog-actions .btn{min-height:44px}
+
+/* On a phone the action column sits past a horizontal scroll. Pin the first
+   column so the admin can still tell which flavour a row of buttons belongs to. */
+@media (max-width:680px){
+  .inv-table th:first-child,.inv-table td:first-child{position:sticky;left:0;z-index:2;background:#fff;box-shadow:1px 0 0 var(--line)}
+  .inv-table thead th:first-child{z-index:3;background:#f8fafc}
+  .inv-table-wrap{scroll-padding-left:0}
+  .inv-toolbar{justify-content:stretch}
+  .inv-toolbar .btn{width:100%;min-height:46px}
+  .inv-row-actions{flex-wrap:nowrap}
+  .inv-row-actions .btn{min-height:40px}
+  .inv-dialog-readout{grid-template-columns:1fr}
+  .inv-dialog-actions{display:grid;grid-template-columns:1fr 1fr}
+  .inv-dialog-actions .btn{width:100%}
+}
 
 @media (max-width:980px){
   .inv-summary{grid-template-columns:1fr}

@@ -1,7 +1,7 @@
 (function(){
   const GROUPS=[
     {id:'operations',icon:'⚙',label:'Operasi',views:['members','stock','sales','events']},
-    {id:'products',icon:'▦',label:'Produk & Inventori',views:['flavours','materials','purchases']},
+    {id:'products',icon:'▦',label:'Produk & Inventori',views:['flavours','materials','stock','purchases']},
     {id:'finance',icon:'RM',label:'Kewangan',views:['expenses','invoices','accounting','partners','sales-documents']},
     {id:'content',icon:'▧',label:'Content & Marketing',views:['posters','recruitment-posters','tiktok-history','tiktok-post-history','social-media']},
     {id:'system',icon:'✦',label:'Sistem & AI',views:['ai-office','audit']}
