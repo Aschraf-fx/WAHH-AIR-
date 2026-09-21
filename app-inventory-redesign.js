@@ -162,6 +162,38 @@
   window.wahhOpenDialog = openInvDialog;
 
   /* ------------------------------------------------------------ fetching */
+  /* The three RPCs this screen needs are added by supabase/26-admin-inventory-crud.sql,
+     which has to be run in the Supabase SQL editor. If the UI is deployed before that
+     migration runs, Postgres answers with a raw "function ... does not exist" that
+     means nothing to an admin. Turn it into something actionable. */
+  function missingMigration(error) {
+    if (!error) return false;
+    const text = `${error.code || ''} ${error.message || ''} ${error.hint || ''}`;
+    return /PGRST202|404/.test(String(error.code || '')) ||
+      /could not find the function|does not exist|schema cache/i.test(text);
+  }
+
+  /* Toast an RPC failure, but explain the setup step when the cause is the missing
+     migration rather than something the admin did. */
+  function reportRpcError(error) {
+    if (missingMigration(error)) {
+      toast('Ciri ini perlukan setup: jalankan supabase/26-admin-inventory-crud.sql dalam Supabase SQL editor.', 'error');
+      return false;
+    }
+    toast(error?.message || 'Ralat tidak dijangka.', 'error');
+    return false;
+  }
+
+  function migrationNotice(detail) {
+    return `<div class="empty-state">
+      <strong>Ciri ini perlukan satu langkah setup.</strong>
+      <p style="margin:8px 0 0">Jalankan fail <code>supabase/26-admin-inventory-crud.sql</code>
+      dalam Supabase SQL editor, kemudian muat semula halaman ini.</p>
+      <details style="margin-top:8px"><summary class="muted" style="font-size:.76rem;cursor:pointer">Butiran teknikal</summary>
+      <p class="muted" style="margin:6px 0 0;font-size:.76rem">${esc(detail)}</p></details>
+    </div>`;
+  }
+
   async function fetchHistory(flavourId) {
     const { data, error } = await state.supabase.rpc('admin_stock_history', {
       p_limit: 300,
@@ -398,7 +430,7 @@
           p_new_quantity: next,
           p_reason: read('reason').trim() || null
         });
-        if (error) { toast(error.message, 'error'); return false; }
+        if (error) return reportRpcError(error);
         toast(`${name}: baki HQ ${num(qty)} → ${num(next)}.`, 'success');
         renderView('stock');
       }
@@ -465,7 +497,7 @@
           p_new_quantity: next,
           p_reason: read('reason').trim() || null
         });
-        if (error) { toast(error.message, 'error'); return false; }
+        if (error) return reportRpcError(error);
         toast(`${memberName} — ${name}: ${num(qty)} → ${num(next)}.`, 'success');
         renderView('stock');
       }
@@ -913,7 +945,9 @@
       try {
         rows = await fetchHistory(flavourId);
       } catch (err) {
-        body.innerHTML = `<div class="empty-state">Gagal memuatkan sejarah: ${esc(err.message || 'ralat tidak dijangka')}</div>`;
+        body.innerHTML = missingMigration(err)
+          ? migrationNotice(err.message)
+          : `<div class="empty-state">Gagal memuatkan sejarah: ${esc(err.message || 'ralat tidak dijangka')}</div>`;
         return;
       }
       if (!rows.length) {
