@@ -1,12 +1,67 @@
 async function adminMaterials(root){
   const [{data:materials,error},{data:flavours},{data:recipes}]=await Promise.all([state.supabase.from('materials').select('*').order('name'),state.supabase.from('flavours').select('id,name').eq('active',true).order('name'),state.supabase.from('recipes').select('id,qty_required,flavour_id,material_id,flavours(name),materials(name,unit)').order('created_at')]);if(error)throw error;
-  root.innerHTML=pageHead('COSTING','Recipe & Costing','Average cost bahan berubah bila belian baru direkod. Recipe digunakan untuk kira COGS per unit. Baki bahan di sini untuk rujukan sahaja \u2014 ubah baki, rekod belian dan tambah bahan baru di skrin <strong>Inventori &amp; Stok</strong>.')+`<section class="panel"><div class="panel-head"><div><h3>Tambah Bahan</h3></div></div><form id="matForm" class="inline-form"><div class="field"><label>Nama</label><input id="matName" required placeholder="Serbuk Honeydew"></div><div class="field"><label>Unit</label><select id="matUnit"><option value="g">gram (g)</option><option value="ml">ml</option><option value="unit">unit</option><option value="can">tin</option><option value="kg">kg</option></select></div><div class="field"><label>Min Qty</label><input id="matMin" type="number" min="0" step="0.001" value="0"></div><button class="btn primary" type="submit">Tambah</button></form></section>
-  <section class="panel"><div class="table-wrap"><table class="data-table"><thead><tr><th>Bahan</th><th>Unit</th><th class="num">Baki Semasa</th><th class="num">Kos Purata / Unit</th><th class="num">Nilai Stok</th></tr></thead><tbody>${materials?.length?materials.map(r=>`<tr><td><strong>${esc(r.name)}</strong></td><td>${esc(r.unit)}</td><td class="num">${num(r.current_qty,3)}</td><td class="num">${money(r.avg_unit_cost)}</td><td class="num">${money(Number(r.current_qty)*Number(r.avg_unit_cost))}</td></tr>`).join(''):tableEmpty(5)}</tbody></table></div></section>
-  <section class="panel"><div class="panel-head"><div><h3>Recipe / Product Costing</h3><p>Contoh: 15g serbuk untuk 1 botol Honeydew.</p></div></div><form id="recipeForm" class="inline-form"><div class="field"><label>Perisa</label><select id="recFlavour">${(flavours||[]).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></div><div class="field"><label>Bahan</label><select id="recMaterial">${(materials||[]).map(x=>`<option value="${x.id}">${esc(x.name)} (${esc(x.unit)})</option>`).join('')}</select></div><div class="field"><label>Qty / 1 unit air</label><input id="recQty" type="number" min="0.0001" step="0.0001" required></div><button class="btn primary" type="submit">Tambah Recipe</button></form><div class="table-wrap" style="margin-top:14px"><table class="data-table"><thead><tr><th>Perisa</th><th>Bahan</th><th class="num">Qty</th><th></th></tr></thead><tbody>${recipes?.length?recipes.map(r=>`<tr><td>${esc(r.flavours?.name||'-')}</td><td>${esc(r.materials?.name||'-')}</td><td class="num">${num(r.qty_required,4)} ${esc(r.materials?.unit||'')}</td><td><button class="btn sm danger recipe-delete" data-id="${r.id}">Delete</button></td></tr>`).join(''):tableEmpty(4)}</tbody></table></div></section>`;
-  $('#matForm',root).addEventListener('submit',async e=>{e.preventDefault();const{error}=await state.supabase.from('materials').insert({name:$('#matName').value.trim(),unit:$('#matUnit').value,min_qty:Number($('#matMin').value)});if(error)return toast(error.message,'error');toast('Bahan ditambah.','success');renderView('materials');});
-  $('#recipeForm',root).addEventListener('submit',async e=>{e.preventDefault();const{error}=await state.supabase.from('recipes').upsert({flavour_id:$('#recFlavour').value,material_id:$('#recMaterial').value,qty_required:Number($('#recQty').value)},{onConflict:'flavour_id,material_id'});if(error)return toast(error.message,'error');toast('Recipe dikemas kini.','success');renderView('materials');});
+  const activeMaterials=(materials||[]).filter(m=>m.active!==false);
+  root.innerHTML=pageHead('COSTING','Recipe & Costing','Average cost bahan berubah bila belian baru direkod. Recipe digunakan untuk kira COGS per unit. Baki bahan di sini untuk rujukan sahaja — ubah baki, rekod belian dan tambah bahan baru di skrin <strong>Inventori &amp; Stok</strong>.')+`<section class="panel"><div class="panel-head"><div><h3>Tambah Bahan</h3><p>Pilih dari senarai jika bahan sudah wujud — elak taip nama sama dua kali.</p></div></div><form id="matForm" class="inline-form"><div class="field"><label>Nama</label><input id="matName" required placeholder="Serbuk Honeydew" list="matExistingList" autocomplete="off"><datalist id="matExistingList">${activeMaterials.map(x=>`<option value="${esc(x.name)}">`).join('')}</datalist></div><div class="field"><label>Unit</label><select id="matUnit"><option value="g">gram (g)</option><option value="ml">ml</option><option value="unit">unit</option><option value="can">tin</option><option value="kg">kg</option></select></div><div class="field"><label>Min Qty</label><input id="matMin" type="number" min="0" step="0.001" value="0"></div><button class="btn primary" type="submit">Tambah</button></form><div id="matDupHint" class="muted" style="margin-top:8px"></div></section>
+  <section class="panel"><div class="table-wrap"><table class="data-table"><thead><tr><th>Bahan</th><th>Unit</th><th class="num">Baki Semasa</th><th class="num">Kos Purata / Unit</th><th class="num">Nilai Stok</th><th>Tindakan</th></tr></thead><tbody>${activeMaterials?.length?activeMaterials.map(r=>`<tr><td><strong>${esc(r.name)}</strong></td><td>${esc(r.unit)}</td><td class="num">${num(r.current_qty,3)}</td><td class="num">${money(r.avg_unit_cost)}</td><td class="num">${money(Number(r.current_qty)*Number(r.avg_unit_cost))}</td><td><div class="row-actions" style="margin:0;justify-content:flex-start"><button class="btn sm ghost mat-edit" data-id="${esc(r.id)}" data-name="${esc(r.name)}" data-unit="${esc(r.unit)}" data-min="${esc(r.min_qty)}">Edit</button><button class="btn sm danger mat-deactivate" data-id="${esc(r.id)}" data-name="${esc(r.name)}">Nyahaktif</button></div></td></tr>`).join(''):tableEmpty(6)}</tbody></table></div></section>
+  <section class="panel"><div class="panel-head"><div><h3>Recipe / Product Costing</h3><p>Contoh: 15g serbuk untuk 1 botol Honeydew. Kombinasi Perisa + Bahan yang sama akan dikemas kini (tiada duplicate).</p></div></div><form id="recipeForm" class="inline-form"><div class="field"><label>Perisa</label><select id="recFlavour">${(flavours||[]).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></div><div class="field"><label>Bahan (pilih dari senarai)</label><select id="recMaterial" required><option value="">Pilih bahan...</option>${activeMaterials.map(x=>`<option value="${x.id}">${esc(x.name)} (${esc(x.unit)})</option>`).join('')}</select></div><div class="field"><label>Qty / 1 unit air</label><input id="recQty" type="number" min="0.0001" step="0.0001" required></div><button class="btn primary" type="submit">Tambah Recipe</button></form><div class="table-wrap" style="margin-top:14px"><table class="data-table"><thead><tr><th>Perisa</th><th>Bahan</th><th class="num">Qty</th><th></th></tr></thead><tbody>${recipes?.length?recipes.map(r=>`<tr><td>${esc(r.flavours?.name||'-')}</td><td>${esc(r.materials?.name||'-')}</td><td class="num">${num(r.qty_required,4)} ${esc(r.materials?.unit||'')}</td><td><button class="btn sm danger recipe-delete" data-id="${r.id}">Delete</button></td></tr>`).join(''):tableEmpty(4)}</tbody></table></div></section>`;
+
+  const nameInput=$('#matName',root);
+  const dupHint=$('#matDupHint',root);
+  const unitSel=$('#matUnit',root);
+  nameInput.addEventListener('input',()=>{
+    const v=nameInput.value.trim().toLowerCase();
+    const found=activeMaterials.find(m=>m.name.trim().toLowerCase()===v);
+    if(v&&found){dupHint.innerHTML=`⚠️ "<strong>${esc(found.name)}</strong>" sudah wujud (${esc(found.unit)}). Sila pilih dari senarai atau guna Edit.`;unitSel.value=found.unit;}
+    else{dupHint.textContent='';}
+  });
+
+  $('#matForm',root).addEventListener('submit',async e=>{
+    e.preventDefault();
+    const name=nameInput.value.trim();
+    if(!name)return toast('Nama bahan diperlukan.','warning');
+    const dup=activeMaterials.find(m=>m.name.trim().toLowerCase()===name.toLowerCase());
+    if(dup)return toast(`"${dup.name}" sudah wujud. Guna Edit jika nak kemas kini.`,'warning');
+    const{error}=await state.supabase.from('materials').insert({name,unit:$('#matUnit').value,min_qty:Number($('#matMin').value)});
+    if(error)return toast(error.message,'error');toast('Bahan ditambah.','success');renderView('materials');
+  });
+
+  $$('.mat-edit',root).forEach(b=>b.addEventListener('click',()=>{
+    const d=b.dataset;const open=window.wahhOpenDialog;
+    if(typeof open!=='function')return toast('Dialog tidak tersedia. Muat semula halaman.','error');
+    open({title:`Edit bahan — ${d.name}`,fields:[
+      {name:'name',label:'Nama bahan',type:'text',required:true,maxlength:120,value:d.name},
+      {name:'unit',label:'Unit',type:'select',required:true,value:d.unit,options:[{value:'g',label:'gram (g)'},{value:'kg',label:'kilogram (kg)'},{value:'ml',label:'mililiter (ml)'},{value:'liter',label:'liter (L)'},{value:'unit',label:'unit'},{value:'pcs',label:'keping (pcs)'},{value:'can',label:'tin (can)'},{value:'botol',label:'botol'},{value:'pek',label:'pek'}]},
+      {name:'min',label:'Paras minimum',type:'number',min:0,step:0.0001,inputmode:'decimal',value:d.min}
+    ],submitLabel:'Simpan perubahan',onSubmit:async({read,num})=>{
+      const name=read('name').trim();const unit=read('unit');const min=num('min');
+      if(!name)return toast('Nama bahan diperlukan.','warning'),false;
+      if(!Number.isFinite(min)||min<0)return toast('Paras minimum tidak sah.','warning'),false;
+      const clash=activeMaterials.find(m=>String(m.id)!==String(d.id)&&m.name.trim().toLowerCase()===name.toLowerCase());
+      if(clash)return toast(`Nama clash dengan "${clash.name}" yang sedia ada.`,'warning'),false;
+      const{error}=await state.supabase.from('materials').update({name,unit,min_qty:min}).eq('id',d.id);
+      if(error){toast(error.message,'error');return false;}
+      toast(`Bahan "${name}" dikemas kini.`,'success');renderView('materials');
+    }});
+  }));
+
+  $$('.mat-deactivate',root).forEach(b=>b.addEventListener('click',async()=>{
+    const ok=await confirmAction('Nyahaktif bahan?',`"${b.dataset.name}" disembunyikan dari senarai dan recipe. Rekod lama kekal.`);
+    if(!ok)return;
+    const{error}=await state.supabase.from('materials').update({active:false}).eq('id',b.dataset.id);
+    if(error)return toast(error.message,'error');toast('Bahan dinyahaktifkan.','success');renderView('materials');
+  }));
+
+  $('#recipeForm',root).addEventListener('submit',async e=>{
+    e.preventDefault();
+    const mat=$('#recMaterial').value;const qty=Number($('#recQty').value);
+    if(!mat)return toast('Pilih bahan dari senarai.','warning');
+    if(!(qty>0))return toast('Qty mesti lebih daripada 0.','warning');
+    const{error}=await state.supabase.from('recipes').upsert({flavour_id:$('#recFlavour').value,material_id:mat,qty_required:qty},{onConflict:'flavour_id,material_id'});
+    if(error)return toast(error.message,'error');toast('Recipe dikemas kini.','success');renderView('materials');
+  });
   $$('.recipe-delete',root).forEach(b=>b.addEventListener('click',async()=>{const{error}=await state.supabase.from('recipes').delete().eq('id',b.dataset.id);if(error)return toast(error.message,'error');renderView('materials');}));
 }
+
 
 async function adminPurchases(root){
   const[{data:materials,error},{data:rows}]=await Promise.all([state.supabase.from('materials').select('id,name,unit').eq('active',true).order('name'),state.supabase.rpc('admin_purchase_history',{p_limit:100})]);if(error)throw error;
