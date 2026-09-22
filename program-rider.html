@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a1f52" />
+  <title>Program Rider WAHH AIR</title>
+  <link rel="icon" href="assets/logo.jpg" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="program-ejen.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header class="topbar agent-topbar">
+    <a class="brand" href="/" aria-label="Kembali ke WAHH AIR">
+      <img src="assets/logo.jpg" alt="WAHH AIR logo" />
+      <div><strong>WAHH AIR!</strong><span>Program Rider</span></div>
+    </a>
+    <a class="btn ghost" href="/">Kembali</a>
+  </header>
+
+  <main class="agent-page">
+    <section class="agent-hero shell">
+      <div>
+        <span class="eyebrow">PROGRAM RIDER WAHH AIR</span>
+        <h1>Jana Pendapatan Sebagai Rider WAHH AIR!</h1>
+        <p>Ambil stok daripada owner, jual di lokasi pilihan sendiri dan terima komisen RM1.80 bagi setiap botol yang berjaya dijual.</p>
+        <div class="agent-actions">
+          <a class="btn primary large" href="/?register=rider">Daftar Sebagai Rider</a>
+          <a id="adminContactBtn" class="btn ghost large is-disabled" href="#" aria-disabled="true">Hubungi Admin</a>
+        </div>
+        <p id="adminContactNote" class="contact-note">Memuatkan maklumat admin...</p>
+      </div>
+      <div class="agent-hero-card">
+        <div class="hero-stat"><span>Harga jual</span><strong>RM7.00</strong><small>sebotol</small></div>
+        <div class="hero-stat"><span>Komisen rider</span><strong>RM1.80</strong><small>setiap botol terjual</small></div>
+        <div class="hero-stat"><span>Makluman stok</span><strong>1 hari</strong><small>sebelum mahu menjual</small></div>
+        <div class="hero-stat"><span>Baki kepada owner</span><strong>RM5.20</strong><small>sebotol terjual</small></div>
+      </div>
+    </section>
+
+    <section class="shell agent-section">
+      <div class="section-heading compact-heading"><div><span class="eyebrow">CARA PROGRAM BERFUNGSI</span><h2>Daripada Ambil Stok Hingga Serah Baki Kutipan</h2></div></div>
+      <div class="steps-grid">
+        <article class="step-card"><b>1</b><h3>Maklumkan owner sehari awal</h3><p>Rider perlu memaklumkan owner sehari sebelum mahu membuat jualan. Contohnya, jika mahu menjual pada Sabtu, maklumkan owner pada Jumaat.</p></article>
+        <article class="step-card"><b>2</b><h3>Ambil stok daripada owner</h3><p>Rider mengambil sendiri stok minuman daripada owner.</p></article>
+        <article class="step-card"><b>3</b><h3>Jual di lokasi pilihan sendiri</h3><p>Rider mencari pelanggan dan menjual minuman di tempat yang mereka pilih.</p></article>
+        <article class="step-card"><b>4</b><h3>Terima pembayaran pelanggan</h3><p>Pelanggan membayar terus kepada rider berdasarkan harga jual RM7 sebotol.</p></article>
+        <article class="step-card"><b>5</b><h3>Simpan komisen sendiri</h3><p>Rider menolak komisen RM1.80 bagi setiap botol yang berjaya dijual daripada hasil jualan.</p></article>
+        <article class="step-card"><b>6</b><h3>Serahkan baki kepada owner</h3><p>Selepas menolak komisen sendiri, rider menyerahkan baki kutipan jualan kepada owner.</p></article>
+      </div>
+    </section>
+
+    <section class="shell agent-section">
+      <div class="section-heading compact-heading"><div><span class="eyebrow">HARGA & KOMISEN</span><h2>RM1.80 Komisen Setiap Botol Terjual</h2></div></div>
+      <div class="info-panel">
+        <div class="responsive-table"><table><thead><tr><th>Perkara</th><th>Jumlah sebotol</th></tr></thead><tbody><tr><td>Harga jual kepada pelanggan</td><td><strong>RM7.00</strong></td></tr><tr><td>Komisen rider</td><td><strong>RM1.80</strong></td></tr><tr><td>Baki yang perlu diserahkan kepada owner</td><td><strong>RM5.20</strong></td></tr></tbody></table></div>
+        <div class="notice success-note"><strong>Komisen terus disimpan rider.</strong><span>Owner tidak perlu membayar komisen semula secara berasingan.</span></div>
+        <div class="distance-highlight"><strong>Formula</strong><span>Bayaran kepada owner = Jumlah hasil jualan − Komisen rider</span></div>
+      </div>
+
+      <div class="info-panel">
+        <h3>Contoh pengiraan</h3>
+        <div class="responsive-table"><table><thead><tr><th>Botol terjual</th><th>Kutipan pelanggan</th><th>Komisen rider</th><th>Bayaran kepada owner</th></tr></thead><tbody><tr><td>10 botol</td><td>RM70</td><td><strong>RM18</strong></td><td>RM52</td></tr><tr><td>25 botol</td><td>RM175</td><td><strong>RM45</strong></td><td>RM130</td></tr><tr><td>50 botol</td><td>RM350</td><td><strong>RM90</strong></td><td>RM260</td></tr><tr><td>100 botol</td><td>RM700</td><td><strong>RM180</strong></td><td>RM520</td></tr></tbody></table></div>
+        <p class="muted calculation-note">Jumlah komisen di atas adalah sebelum perbelanjaan rider sendiri seperti minyak. Contoh kuantiti ini bukan syarat minimum pengambilan stok dan bukan jaminan pendapatan.</p>
+      </div>
+    </section>
+
+    <section class="shell agent-section">
+      <div class="section-heading compact-heading"><div><span class="eyebrow">TANGGUNGJAWAB RIDER</span><h2>Perkara Penting Sebelum Ambil Stok</h2></div></div>
+      <div class="rules-grid">
+        <article class="rule-card"><strong>Semua botol perlu dijual</strong><p>Setiap botol yang diambil perlu dijual semuanya.</p></article>
+        <article class="rule-card"><strong>Rancang jumlah stok</strong><p>Rider perlu merancang jumlah pengambilan stok berdasarkan kemampuan jualan sendiri.</p></article>
+        <article class="rule-card"><strong>Sediakan beg sendiri</strong><p>Beg rider tidak disediakan oleh WAHH AIR. Rider perlu menyediakan beg sendiri.</p></article>
+        <article class="rule-card"><strong>Ambil stok sendiri</strong><p>Rider mengambil sendiri stok minuman daripada owner sebelum mula menjual.</p></article>
+      </div>
+      <div class="notice"><strong>WAJIB FAHAM SEBELUM DAFTAR</strong><span>Setiap botol yang diambil perlu dijual semuanya. Beg rider tidak disediakan oleh WAHH AIR. Rider perlu menyediakan beg sendiri.</span></div>
+    </section>
+
+    <section class="shell agent-section">
+      <div class="section-heading compact-heading"><div><span class="eyebrow">SOALAN LAZIM</span><h2>Perkara Penting Sebelum Daftar</h2></div></div>
+      <div class="faq-list">
+        <details><summary>Berapakah komisen rider?</summary><p>RM1.80 bagi setiap botol yang berjaya dijual.</p></details>
+        <details><summary>Berapakah harga jual kepada pelanggan?</summary><p>RM7 sebotol.</p></details>
+        <details><summary>Bagaimana rider mendapatkan stok?</summary><p>Rider mengambil sendiri stok daripada owner.</p></details>
+        <details><summary>Bilakah perlu memaklumkan owner?</summary><p>Sehari sebelum mahu membuat jualan.</p></details>
+        <details><summary>Di mana rider boleh menjual?</summary><p>Rider memilih sendiri lokasi jualan mereka.</p></details>
+        <details><summary>Adakah beg disediakan?</summary><p>Tidak. Rider perlu menyediakan beg sendiri.</p></details>
+        <details><summary>Adakah semua botol yang diambil perlu dijual?</summary><p>Ya. Rider bertanggungjawab menjual semua botol yang diambil.</p></details>
+        <details><summary>Bagaimana komisen diterima?</summary><p>Rider menyimpan terus komisen daripada kutipan pelanggan dan menyerahkan baki kepada owner.</p></details>
+      </div>
+    </section>
+
+    <section class="shell agent-cta-bottom">
+      <div><span class="eyebrow">BERMINAT MENJADI RIDER?</span><h2>Daftar sebagai Rider WAHH AIR.</h2><p>Pastikan anda faham bahawa semua stok yang diambil perlu dijual dan beg rider perlu disediakan sendiri sebelum mendaftar.</p></div>
+      <div class="agent-actions"><a class="btn primary large" href="/?register=rider">Daftar Sebagai Rider</a><a id="adminContactBtnBottom" class="btn ghost large is-disabled" href="#" aria-disabled="true">Hubungi Admin</a></div>
+    </section>
+  </main>
+
+  <footer class="agent-footer"><div class="shell">WAHH AIR! • Program Rider</div></footer>
+  <script src="program-rider.js" defer></script>
+</body>
+</html>
