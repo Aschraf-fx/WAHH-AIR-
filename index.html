@@ -65,6 +65,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+  <a class="skip-link" href="#main">Langkau ke kandungan utama</a>
   <div id="toast" class="toast" aria-live="polite"></div>
 
   <header class="topbar">
@@ -85,7 +86,7 @@
     </nav>
   </header>
 
-  <main>
+  <main id="main" tabindex="-1">
     <section id="publicApp">
       <section class="hero shell">
         <div class="hero-copy">
@@ -220,7 +221,7 @@
     </section>
   </main>
 
-  <div id="loginModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+  <div id="loginModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="loginTitle" tabindex="-1">
     <div class="modal-card auth-card">
       <button class="modal-close" data-close="loginModal" aria-label="Tutup">×</button>
       <img class="auth-logo" src="assets/logo.jpg" alt="WAHH AIR" />
@@ -246,7 +247,7 @@
     </div>
   </div>
 
-  <div id="registerModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="registerTitle">
+  <div id="registerModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="registerTitle" tabindex="-1">
     <div class="modal-card auth-card">
       <button class="modal-close" data-close="registerModal" aria-label="Tutup">×</button>
       <img class="auth-logo" src="assets/logo.jpg" alt="WAHH AIR" />
@@ -277,7 +278,7 @@
     </div>
   </div>
 
-  <div id="invoiceModal" class="modal hidden" role="dialog" aria-modal="true">
+  <div id="invoiceModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Invois" tabindex="-1">
     <div class="modal-card invoice-modal-card">
       <div class="invoice-toolbar no-print">
         <button class="btn ghost" data-close="invoiceModal">Tutup</button>
@@ -287,7 +288,7 @@
     </div>
   </div>
 
-  <div id="confirmModal" class="modal hidden" role="dialog" aria-modal="true">
+  <div id="confirmModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText" tabindex="-1">
     <div class="modal-card small-modal">
       <h3 id="confirmTitle">Pengesahan</h3>
       <p id="confirmText" class="muted"></p>
